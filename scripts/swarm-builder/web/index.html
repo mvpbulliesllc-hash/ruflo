@@ -1,0 +1,418 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Swarm Builder — brief → executable ruflo swarm</title>
+<style>
+  :root {
+    --ground: #0d1520; --surface: #16232f; --surface-2: #1c2c3a;
+    --ink: #e9eff5; --muted: #8397a9; --wire: #324a60; --hair: #23384a;
+    --signal: #2fdcc2; --signal-ink: #06120f;
+    --coordinator: #f0b955; --doer: #4fc3e8; --tester: #b48cf0; --reviewer: #6bd08e; --blocker: #f0785f;
+    --radius: 10px; --maxw: 1240px;
+    --mono: ui-monospace, "SF Mono", "JetBrains Mono", "Cascadia Code", Menlo, Consolas, monospace;
+    --sans: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --ground: #eef1f4; --surface: #ffffff; --surface-2: #f4f7f9;
+      --ink: #16232f; --muted: #5a6f80; --wire: #b7c6d2; --hair: #dde5eb;
+      --signal: #0b9c86; --signal-ink: #ffffff;
+      --coordinator: #b47a13; --doer: #1f7fa3; --tester: #7a4fc9; --reviewer: #2f9457; --blocker: #cf4b32;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground: #0d1520; --surface: #16232f; --surface-2: #1c2c3a;
+    --ink: #e9eff5; --muted: #8397a9; --wire: #324a60; --hair: #23384a;
+    --signal: #2fdcc2; --signal-ink: #06120f;
+    --coordinator: #f0b955; --doer: #4fc3e8; --tester: #b48cf0; --reviewer: #6bd08e; --blocker: #f0785f;
+  }
+  :root[data-theme="light"] {
+    --ground: #eef1f4; --surface: #ffffff; --surface-2: #f4f7f9;
+    --ink: #16232f; --muted: #5a6f80; --wire: #b7c6d2; --hair: #dde5eb;
+    --signal: #0b9c86; --signal-ink: #ffffff;
+    --coordinator: #b47a13; --doer: #1f7fa3; --tester: #7a4fc9; --reviewer: #2f9457; --blocker: #cf4b32;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--ground); color: var(--ink); font-family: var(--sans); line-height: 1.5;
+    -webkit-font-smoothing: antialiased; }
+  a { color: var(--signal); }
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 22px 20px 64px; }
+
+  header.top { display: flex; align-items: baseline; gap: 16px; flex-wrap: wrap;
+    border-bottom: 1px solid var(--hair); padding-bottom: 16px; margin-bottom: 22px; }
+  .brand { font-family: var(--mono); font-weight: 700; font-size: 1.05rem; letter-spacing: 0.14em;
+    text-transform: uppercase; display: flex; align-items: center; gap: 10px; }
+  .brand .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--signal);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--signal) 22%, transparent); }
+  .tag { color: var(--muted); font-size: 0.92rem; max-width: 60ch; }
+  .theme-toggle { margin-left: auto; font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.1em;
+    text-transform: uppercase; background: var(--surface); color: var(--muted); border: 1px solid var(--hair);
+    border-radius: 999px; padding: 7px 14px; cursor: pointer; }
+  .theme-toggle:hover { color: var(--ink); border-color: var(--wire); }
+
+  .grid { display: grid; grid-template-columns: minmax(320px, 400px) 1fr; gap: 22px; align-items: start; }
+  @media (max-width: 880px) { .grid { grid-template-columns: 1fr; } }
+
+  .panel { background: var(--surface); border: 1px solid var(--hair); border-radius: var(--radius); }
+  .panel-h { font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.16em; text-transform: uppercase;
+    color: var(--muted); padding: 14px 16px 0; }
+  .pad { padding: 14px 16px 16px; }
+
+  label.f { display: block; font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.12em;
+    text-transform: uppercase; color: var(--muted); margin: 12px 0 6px; }
+  input[type=text], textarea {
+    width: 100%; background: var(--ground); color: var(--ink); border: 1px solid var(--hair);
+    border-radius: 8px; padding: 10px 12px; font-family: var(--mono); font-size: 0.86rem; resize: vertical; }
+  input[type=text]:focus, textarea:focus { outline: 2px solid var(--signal); outline-offset: 1px; border-color: transparent; }
+  textarea { min-height: 300px; line-height: 1.45; }
+
+  .btnrow { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+  button.act { font-family: var(--mono); font-size: 0.78rem; letter-spacing: 0.06em; cursor: pointer;
+    border-radius: 8px; padding: 10px 16px; border: 1px solid var(--hair); background: var(--surface-2); color: var(--ink); }
+  button.act.primary { background: var(--signal); color: var(--signal-ink); border-color: transparent; font-weight: 700; }
+  button.act:hover { border-color: var(--wire); }
+  button.act.primary:hover { filter: brightness(1.08); }
+
+  /* Summary stat row */
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 18px; }
+  @media (max-width: 560px) { .stats { grid-template-columns: repeat(2, 1fr); } }
+  .stat { background: var(--surface); border: 1px solid var(--hair); border-radius: var(--radius); padding: 14px 16px; }
+  .stat .n { font-family: var(--mono); font-size: 1.7rem; font-weight: 700; font-variant-numeric: tabular-nums;
+    color: var(--ink); line-height: 1.1; }
+  .stat .n.warn { color: var(--blocker); }
+  .stat .l { font-size: 0.74rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-top: 4px; }
+
+  .phase { margin-bottom: 16px; overflow: hidden; }
+  .phase-head { display: flex; align-items: center; gap: 12px; padding: 14px 16px; border-bottom: 1px solid var(--hair);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--signal) 6%, var(--surface)), var(--surface)); }
+  .phase-num { font-family: var(--mono); font-weight: 700; font-size: 0.72rem; letter-spacing: 0.1em;
+    color: var(--signal-ink); background: var(--signal); border-radius: 6px; padding: 4px 8px; }
+  .phase-title { font-weight: 650; font-size: 1.02rem; }
+  .phase-meta { margin-left: auto; font-family: var(--mono); font-size: 0.7rem; color: var(--muted); text-align: right; }
+  .goal { color: var(--muted); font-size: 0.9rem; padding: 10px 16px 0; }
+
+  .roster { display: flex; flex-wrap: wrap; gap: 7px; padding: 12px 16px; }
+  .chip { font-family: var(--mono); font-size: 0.72rem; padding: 4px 9px; border-radius: 999px;
+    border: 1px solid; display: inline-flex; align-items: center; gap: 6px; }
+  .chip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+  .chip.coordinator { color: var(--coordinator); border-color: color-mix(in srgb, var(--coordinator) 45%, transparent); }
+  .chip.doer { color: var(--doer); border-color: color-mix(in srgb, var(--doer) 45%, transparent); }
+  .chip.tester { color: var(--tester); border-color: color-mix(in srgb, var(--tester) 45%, transparent); }
+  .chip.reviewer { color: var(--reviewer); border-color: color-mix(in srgb, var(--reviewer) 45%, transparent); }
+  .chip .type { color: var(--muted); }
+
+  table.wp { width: 100%; border-collapse: collapse; font-size: 0.86rem; }
+  table.wp td { padding: 9px 16px; border-top: 1px solid var(--hair); vertical-align: top; }
+  table.wp .tl { width: 118px; }
+  .tlabel { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.04em; padding: 2px 7px; border-radius: 5px;
+    background: var(--surface-2); border: 1px solid var(--hair); color: var(--muted); white-space: nowrap; }
+  .wp-title { font-weight: 600; }
+  .wp-detail { color: var(--muted); font-size: 0.82rem; }
+  .wp-agent { font-family: var(--mono); font-size: 0.74rem; color: var(--signal); white-space: nowrap; }
+
+  .gates { padding: 12px 16px 16px; border-top: 1px solid var(--hair); }
+  .gates .gh { font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.12em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: 8px; }
+  .gate { display: flex; gap: 8px; font-size: 0.85rem; color: var(--muted); margin: 5px 0; }
+  .gate::before { content: "✓"; color: var(--reviewer); font-family: var(--mono); }
+
+  /* Runnable block */
+  .code-h { display: flex; align-items: center; gap: 10px; padding: 14px 16px 0; flex-wrap: wrap; }
+  select.ph { font-family: var(--mono); font-size: 0.76rem; background: var(--ground); color: var(--ink);
+    border: 1px solid var(--hair); border-radius: 7px; padding: 6px 8px; }
+  button.copy { margin-left: auto; font-family: var(--mono); font-size: 0.72rem; cursor: pointer;
+    background: var(--surface-2); color: var(--ink); border: 1px solid var(--hair); border-radius: 7px; padding: 6px 12px; }
+  button.copy:hover { border-color: var(--wire); }
+  pre.code { margin: 12px 16px 16px; background: var(--ground); border: 1px solid var(--hair); border-radius: 8px;
+    padding: 14px; overflow-x: auto; font-family: var(--mono); font-size: 0.78rem; line-height: 1.55; color: var(--ink); }
+  pre.code .cmt { color: var(--muted); }
+  pre.code .fn { color: var(--signal); }
+
+  .blockers { border-color: color-mix(in srgb, var(--blocker) 40%, var(--hair)); }
+  .blockers .panel-h { color: var(--blocker); }
+  .blocker-item { display: flex; gap: 9px; font-size: 0.88rem; margin: 7px 0; }
+  .blocker-item::before { content: "!"; font-family: var(--mono); font-weight: 700; color: var(--blocker);
+    background: color-mix(in srgb, var(--blocker) 18%, transparent); border-radius: 5px; min-width: 20px; text-align: center; }
+  .std-item { display: flex; gap: 9px; font-size: 0.86rem; color: var(--muted); margin: 6px 0; }
+  .std-item::before { content: "▹"; color: var(--signal); }
+
+  .empty { color: var(--muted); text-align: center; padding: 60px 20px; border: 1px dashed var(--hair);
+    border-radius: var(--radius); font-family: var(--mono); font-size: 0.85rem; }
+  .foot { margin-top: 28px; padding-top: 16px; border-top: 1px solid var(--hair); color: var(--muted);
+    font-size: 0.8rem; font-family: var(--mono); }
+  .stack { display: flex; flex-direction: column; gap: 16px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="brand"><span class="dot"></span> Swarm&nbsp;Builder</div>
+    </div>
+    <p class="tag">Point it at any repo, hand it any build brief. It decomposes the work into phases and packages,
+      assigns an anti-drift agent roster, and emits the exact swarm to run in Claude&nbsp;Code.</p>
+    <button class="theme-toggle" id="themeBtn" type="button">Theme</button>
+  </header>
+
+  <div class="grid">
+    <!-- INPUT -->
+    <section class="panel" aria-label="Build input">
+      <div class="panel-h">Mission input</div>
+      <div class="pad">
+        <label class="f" for="repo">Target repository</label>
+        <input type="text" id="repo" placeholder="github.com/acme/site  (or a local path)" />
+        <label class="f" for="brief">Build brief</label>
+        <textarea id="brief" spellcheck="false" placeholder="Paste a build brief — phases, work packages, gates. Markdown or plain text."></textarea>
+        <div class="btnrow">
+          <button class="act primary" id="buildBtn" type="button">Build swarm</button>
+          <button class="act" id="exampleBtn" type="button">Load example</button>
+          <button class="act" id="clearBtn" type="button">Clear</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- OUTPUT -->
+    <section aria-label="Swarm plan" id="out">
+      <div class="empty" id="empty">Awaiting a brief. Paste one on the left, or load the ECO&nbsp;MATRIX example.</div>
+      <div id="plan" hidden>
+        <div class="stats" id="stats"></div>
+        <div class="stack" id="phases"></div>
+        <div class="panel" id="cmdPanel" style="margin-top:16px" hidden>
+          <div class="code-h">
+            <span class="panel-h" style="padding:0">Runnable swarm</span>
+            <select class="ph" id="phaseSel" aria-label="Phase to render"></select>
+            <button class="copy" id="copyBtn" type="button">Copy</button>
+          </div>
+          <pre class="code" id="code"></pre>
+        </div>
+        <div class="stack" style="margin-top:16px">
+          <div class="panel blockers" id="blockPanel" hidden>
+            <div class="panel-h">Needs a human — do not guess</div>
+            <div class="pad" id="blockers"></div>
+          </div>
+          <div class="panel" id="stdPanel" hidden>
+            <div class="panel-h">Global standards</div>
+            <div class="pad" id="standards"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="foot">ruflo · swarm-builder — the engine here mirrors scripts/swarm-builder/engine.mjs. Plans are runnable via the CLI: <span style="color:var(--signal)">node scripts/swarm-builder/cli.mjs &lt;brief&gt; --repo &lt;url&gt; --commands</span></div>
+</div>
+
+<script type="module">
+/* ── engine (mirrors scripts/swarm-builder/engine.mjs) ─────────────────── */
+const ROUTING_RULES = [
+  { code:9, label:'Security', match:/\b(security|compliance|vuln|vulnerab|cve|auth|oauth|dnc|consent|opt-?out|10dlc|threat|hardening|secrets?|injection)\b/i, primary:'security-auditor', specialists:['security-architect'] },
+  { code:7, label:'Performance', match:/\b(perf|performance|lighthouse|cwv|core web vitals|lcp|cls|inp|optimi[sz]e|speed|latency|image[s]?|avif|webp|srcset|bundle|lazy|preload|budget)\b/i, primary:'perf-analyzer', specialists:['performance-benchmarker'] },
+  { code:11, label:'Memory/Data', match:/\b(database|schema migration|supabase|postgres|sql|index(es|ing)?|data model|enrich(ment)?|etl|pipeline|vector|embedding)\b/i, primary:'backend-dev', specialists:['database-specialist'] },
+  { code:5, label:'Refactor', match:/\b(refactor|migrate|convert|move|restructure|modernize|rename|reorganize|301|redirect)\b/i, primary:'coder', specialists:['system-architect'] },
+  { code:13, label:'Docs', match:/\b(document(ation)?|readme|build-notes|changelog|explainer|api docs|write-?up|guide)\b/i, primary:'api-docs', specialists:['researcher'] },
+  { code:1, label:'Bug Fix', match:/\b(fix|bug|broken|404|resolve|repair|patch|regression|error)\b/i, primary:'coder', specialists:['researcher'] },
+  { code:3, label:'Feature', match:/.*/, primary:'coder', specialists:['system-architect'] },
+];
+function classifyPackage(text=''){ const r=ROUTING_RULES.find(r=>r.match.test(text))||ROUTING_RULES[ROUTING_RULES.length-1]; return {code:r.code,label:r.label,primary:r.primary,specialists:r.specialists.slice()}; }
+
+const SECTION_RE=/^#{1,6}\s+(.*\S)\s*$/, PHASE_HEADING_RE=/\bphase\b/i, BULLET_RE=/^\s*[-*]\s+(.*\S)\s*$/;
+const WP_BOLD_RE=/^\s*[-*]\s+\*\*(.+?)\*\*[:：]?\s*(.*)$/;
+const GATE_HEADING_RE=/\b(verification|verify|acceptance|done when|definition of done|gates?)\b/i;
+const STANDARDS_HEADING_RE=/\b(standards?|global standards?|constraints?|do not break|guardrails?|rules?)\b/i;
+const HUMAN_HEADING_RE=/\b(needs?\s+\w+|decisions?|inputs?\s+required|blocked|human|stop and flag)\b/i;
+const CURRENT_HEADING_RE=/\b(current state|what.?s already|status quo|existing)\b/i;
+const stripMd=s=>String(s||'').replace(/\*\*(.+?)\*\*/g,'$1').replace(/`([^`]+)`/g,'$1').replace(/\[([^\]]+)\]\([^)]*\)/g,'$1').trim();
+const slug=(s,f)=>{const b=String(s||'').toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'').slice(0,40);return b||f;};
+function splitBullets(s){const m=s.match(BULLET_RE);if(m)return[stripMd(m[1])];const c=stripMd(s.replace(/^\|/,'').replace(/\|$/,'')).trim();return c?[c]:[];}
+function addWorkPackage(phase,titleRaw,detailRaw){const title=stripMd(titleRaw);if(!title)return;const detail=stripMd(detailRaw);const idFromTitle=(title.match(/^([A-Z]?\d+(?:\.\d+)*)/)||[])[1];const id=idFromTitle?`wp-${slug(idFromTitle,String(phase.workPackages.length+1))}`:`${phase.id}-wp-${phase.workPackages.length+1}`;const cls=classifyPackage(`${title} ${detail}`);phase.workPackages.push({id,title,detail,taskCode:cls.code,taskLabel:cls.label,primaryAgent:cls.primary,specialists:cls.specialists});}
+
+function parseBrief(raw='',opts={}){
+  const lines=String(raw).replace(/\r\n/g,'\n').split('\n');
+  const brief={title:opts.title||'',mission:'',repo:opts.repo||'',currentState:[],phases:[],standards:[],needsHuman:[],verificationGates:[]};
+  let mode='preamble',currentPhase=null,pendingPhaseFromSection=false;
+  const ensureTitle=t=>{if(!brief.title)brief.title=stripMd(t);};
+  const startPhase=title=>{const id=`phase-${brief.phases.length+1}`;currentPhase={id,title:stripMd(title),goal:'',workPackages:[],verificationGates:[]};brief.phases.push(currentPhase);mode='phase';};
+  for(let i=0;i<lines.length;i++){
+    const line=lines[i],heading=line.match(SECTION_RE);
+    if(heading){
+      const level=(line.match(/^#+/)||['#'])[0].length,text=heading[1];
+      if(level===1)ensureTitle(text);
+      if(GATE_HEADING_RE.test(text)){mode='gates';continue;}
+      if(STANDARDS_HEADING_RE.test(text)){mode='standards';continue;}
+      if(HUMAN_HEADING_RE.test(text)){mode='human';continue;}
+      if(CURRENT_HEADING_RE.test(text)){mode='current';continue;}
+      if(PHASE_HEADING_RE.test(text)){startPhase(text);continue;}
+      if(/\b(build queue|work packages?|swarm|tasks?|roadmap|plan)\b/i.test(text)){pendingPhaseFromSection=true;mode='preamble';continue;}
+      if(level===2&&(pendingPhaseFromSection||brief.phases.length===0)){
+        if(/\b(spec library|table of contents|overview|frame)\b/i.test(text)){mode='ignore';continue;}
+        startPhase(text);continue;
+      }
+      if(mode==='phase'&&currentPhase)continue;
+      mode='ignore';continue;
+    }
+    const trimmed=line.trim();if(!trimmed)continue;
+    if(mode==='gates'){brief.verificationGates.push(...splitBullets(trimmed));continue;}
+    if(mode==='standards'){brief.standards.push(...splitBullets(trimmed));continue;}
+    if(mode==='human'){brief.needsHuman.push(...splitBullets(trimmed));continue;}
+    if(mode==='current'){brief.currentState.push(...splitBullets(trimmed));continue;}
+    if(mode==='preamble'){if(!brief.mission&&!BULLET_RE.test(line)&&!/^>/.test(trimmed))brief.mission=stripMd(trimmed).slice(0,300);continue;}
+    if(mode==='phase'&&currentPhase){
+      const wpBold=line.match(WP_BOLD_RE);
+      if(wpBold){addWorkPackage(currentPhase,wpBold[1],wpBold[2]);continue;}
+      const bullet=line.match(BULLET_RE);
+      if(bullet){addWorkPackage(currentPhase,bullet[1],'');continue;}
+      if(!currentPhase.goal&&!/^>/.test(trimmed))currentPhase.goal=stripMd(trimmed).slice(0,300);
+    }
+  }
+  for(const p of brief.phases)if(p.workPackages.length===0&&(p.goal||p.title))addWorkPackage(p,p.title,p.goal);
+  return brief;
+}
+
+const ANTI_DRIFT={topology:'hierarchical',strategy:'specialized',consensus:'raft',maxAgentsCap:8};
+function shortName(t,n){const b=t.replace(/-(dev|auditor|architect|analyzer|benchmarker|specialist|coordinator)$/,'');return `${b||t}-${n}`;}
+function buildTaskGraph(phase,roster){const doers=roster.filter(r=>r.role.startsWith('Implements'));const nodes=[];const kickoff={id:`${phase.id}-kickoff`,wp:null,agent:'coordinator',dependsOn:[]};nodes.push(kickoff);const dn=[];for(const wp of phase.workPackages){const d=doers.find(d=>d.worksOn.includes(wp.id))||doers[0]||{name:'coder-1'};const node={id:`${wp.id}-task`,wp:wp.id,agent:d.name,dependsOn:[kickoff.id]};nodes.push(node);dn.push(node.id);}const testNode={id:`${phase.id}-test`,wp:null,agent:'tester',dependsOn:dn.length?dn:[kickoff.id]};const reviewNode={id:`${phase.id}-review`,wp:null,agent:'reviewer',dependsOn:[testNode.id]};nodes.push(testNode,reviewNode);return nodes;}
+function planSwarm(brief){
+  const phases=brief.phases.map((phase,pIdx)=>{
+    const roster=[],seen=new Set();
+    const add=(name,agentType,role,worksOn=[])=>{if(seen.has(name)){const e=roster.find(r=>r.name===name);if(e)e.worksOn.push(...worksOn);return e;}seen.add(name);const e={name,agentType,role,worksOn:worksOn.slice()};roster.push(e);return e;};
+    add('coordinator','hierarchical-coordinator','Owns the phase, assigns work, maintains authoritative state (raft leader).');
+    const byType=new Map();
+    for(const wp of phase.workPackages){const type=wp.primaryAgent;const name=shortName(type,byType.size+1);if(!byType.has(type))byType.set(type,add(name,type,`Implements ${wp.taskLabel.toLowerCase()} work.`,[wp.id]));else byType.get(type).worksOn.push(wp.id);}
+    add('tester','tester','Writes/runs tests for delivered packages, reports to reviewer.');
+    add('reviewer','reviewer','Reviews quality, security, and enforces the phase verification gates.');
+    const overflow=roster.length>ANTI_DRIFT.maxAgentsCap;
+    const taskGraph=buildTaskGraph(phase,roster);
+    return {id:phase.id,title:phase.title,goal:phase.goal,swarm:{topology:ANTI_DRIFT.topology,strategy:ANTI_DRIFT.strategy,consensus:ANTI_DRIFT.consensus,maxAgents:Math.min(Math.max(roster.length,4),ANTI_DRIFT.maxAgentsCap),cappedOverflow:overflow},roster,taskGraph,workPackages:phase.workPackages,verificationGates:phase.verificationGates.length?phase.verificationGates:brief.verificationGates.filter(g=>new RegExp(`phase\\s*${pIdx+1}`,'i').test(g))};
+  });
+  return {title:brief.title,mission:brief.mission,repo:brief.repo,antiDrift:ANTI_DRIFT,phases,globalGates:brief.verificationGates,standards:brief.standards,needsHuman:brief.needsHuman,summary:{phaseCount:phases.length,packageCount:phases.reduce((n,p)=>n+p.workPackages.length,0),agentCount:phases.reduce((n,p)=>n+p.roster.length,0),blockers:brief.needsHuman.length}};
+}
+
+/* ── render commands (mirrors render.mjs) ──────────────────────────────── */
+const jsStr=s=>JSON.stringify(String(s));
+function renderCommands(plan,phaseIndex=0){
+  const phase=plan.phases[phaseIndex];if(!phase)return{block:'// no phases'};
+  const mcp=`mcp__ruv-swarm__swarm_init({ topology: "${phase.swarm.topology}", maxAgents: ${phase.swarm.maxAgents}, strategy: "${phase.swarm.strategy}" })`;
+  const tasks=phase.roster.map((r,idx)=>{const next=phase.roster[idx+1];const handoff=next?` When done, SendMessage your output to "${next.name}".`:'';const wpText=r.worksOn.length?` Work packages: ${r.worksOn.join(', ')}.`:'';const prompt=`You are "${r.name}" for phase "${phase.title}" in repo ${plan.repo||'<repo>'}. ${r.role}${wpText}${handoff}`;return `Task({ subagent_type: "${r.agentType}", name: "${r.name}", run_in_background: true,\n      prompt: ${jsStr(prompt)} })`;});
+  const first=phase.roster[0];
+  const kickoff=`SendMessage({ to: "${first?.name||'coordinator'}", summary: "Start ${phase.id}", message: ${jsStr(`Begin ${phase.title}. Coordinate the roster, enforce the verification gates, report to the lead.`)} })`;
+  const block=[`// ── Phase ${phaseIndex+1}: ${phase.title} — paste into Claude Code (ONE message) ──`,'// STEP 1: init swarm coordination',mcp,'','// STEP 2: spawn named agents (all in one message, background)',...tasks,'','// STEP 3: kick off the pipeline',kickoff].join('\n');
+  return {block};
+}
+
+/* ── UI ────────────────────────────────────────────────────────────────── */
+const $=id=>document.getElementById(id);
+const roleClass=r=>r.name==='coordinator'?'coordinator':r.name==='tester'?'tester':r.name==='reviewer'?'reviewer':'doer';
+const esc=s=>String(s).replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+let currentPlan=null;
+
+function render(plan){
+  currentPlan=plan;
+  $('empty').hidden=true; $('plan').hidden=false;
+  // stats
+  $('stats').innerHTML=[
+    ['n',plan.summary.phaseCount,'Phases'],
+    ['n',plan.summary.packageCount,'Work packages'],
+    ['n',plan.summary.agentCount,'Agent slots'],
+    ['n'+(plan.summary.blockers?' warn':''),plan.summary.blockers,'Human blockers'],
+  ].map(([c,n,l])=>`<div class="stat"><div class="${c.startsWith('n')?c:'n'}">${n}</div><div class="l">${l}</div></div>`).join('');
+
+  // phases
+  $('phases').innerHTML=plan.phases.map((p,i)=>{
+    const roster=p.roster.map(r=>`<span class="chip ${roleClass(r)}">${esc(r.name)} <span class="type">${esc(r.agentType)}</span></span>`).join('');
+    const wps=p.workPackages.map(w=>`<tr><td class="tl"><span class="tlabel">${esc(w.taskLabel)}</span></td><td><div class="wp-title">${esc(w.title.replace(/[:：]\s*$/,''))}</div>${w.detail?`<div class="wp-detail">${esc(w.detail)}</div>`:''}</td><td><span class="wp-agent">${esc(w.primaryAgent)}</span></td></tr>`).join('');
+    const gates=p.verificationGates.length?`<div class="gates"><div class="gh">Verification gates</div>${p.verificationGates.map(g=>`<div class="gate">${esc(g)}</div>`).join('')}</div>`:'';
+    const overflow=p.swarm.cappedOverflow?` · ⚠ over cap`:'';
+    return `<div class="panel phase"><div class="phase-head"><span class="phase-num">P${i+1}</span><span class="phase-title">${esc(p.title)}</span><span class="phase-meta">${p.swarm.topology}/${p.swarm.strategy}<br>maxAgents ${p.swarm.maxAgents} · ${p.swarm.consensus}${overflow}</span></div>${p.goal?`<div class="goal">${esc(p.goal)}</div>`:''}<div class="roster">${roster}</div><table class="wp"><tbody>${wps}</tbody></table>${gates}</div>`;
+  }).join('');
+
+  // phase selector + code
+  const sel=$('phaseSel');
+  sel.innerHTML=plan.phases.map((p,i)=>`<option value="${i}">Phase ${i+1} — ${esc(p.title).slice(0,42)}</option>`).join('');
+  $('cmdPanel').hidden=plan.phases.length===0;
+  renderCode(0);
+
+  // blockers + standards
+  if(plan.needsHuman.length){$('blockPanel').hidden=false;$('blockers').innerHTML=plan.needsHuman.map(b=>`<div class="blocker-item">${esc(b)}</div>`).join('');}else $('blockPanel').hidden=true;
+  if(plan.standards.length){$('stdPanel').hidden=false;$('standards').innerHTML=plan.standards.map(s=>`<div class="std-item">${esc(s)}</div>`).join('');}else $('stdPanel').hidden=true;
+}
+function renderCode(idx){
+  const {block}=renderCommands(currentPlan,idx);
+  $('code').innerHTML=block.split('\n').map(line=>line.startsWith('//')?`<span class="cmt">${esc(line)}</span>`:esc(line).replace(/(mcp__[\w]+|Task|SendMessage)/g,'<span class="fn">$1</span>')).join('\n');
+}
+function build(){
+  const text=$('brief').value.trim();
+  if(!text){$('plan').hidden=true;$('empty').hidden=false;return;}
+  const plan=planSwarm(parseBrief(text,{repo:$('repo').value.trim()}));
+  if(plan.summary.packageCount===0){$('empty').hidden=false;$('empty').textContent='No work packages found — the brief needs bulleted tasks under phase headings.';$('plan').hidden=true;return;}
+  render(plan);
+  try{localStorage.setItem('sb.brief',text);localStorage.setItem('sb.repo',$('repo').value);}catch(e){}
+}
+
+const EXAMPLE=`# ECO MATRIX — Master Build
+
+Ship the best roofing site on the internet for Paragon Exteriors, the agency site that sells it, and the lead-gen platform behind it.
+
+## Build Queue
+
+### Phase 1 — Paragon flagship: fix + upgrade
+
+Fix and upgrade the live client build.
+
+- **P1.1 Images:** move content images to src/assets, convert to Picture AVIF+WebP with responsive srcset, preload the LCP hero.
+- **P1.2 Quick fixes:** resolve /sitemap.xml 404, add lastmod, font-display swap.
+- **P1.3 Schema completeness:** Organization/LocalBusiness sameAs, AggregateRating + Review (guarded), Service on all service pages.
+- **P1.5 Geo saturation:** expand to every municipality in Ocean + Monmouth, add storm-damage x town. Keep each page unique.
+- **P1.7 CWV budget:** Lighthouse mobile Perf >=95, LCP <2.0s, CLS <0.1, INP <200ms.
+
+### Phase 2 — ECO MATRIX agency site
+
+Revenue engine.
+
+- **P2.1 Template marketplace:** /templates gallery, config-driven, 5 live demos, CTA to CRM lead.
+- **P2.2 Explainer pages:** build the SEO / GEO / schema explainer documentation pages.
+- **P2.3 Site copy v2:** implement the hero, headline, calculator, FAQ, meta.
+
+### Phase 3 — Lead-gen platform
+
+- **P3.1 Compliance spine:** DNC scrub, consent ledger, opt-out handler, 10DLC as first-class features.
+- **P3.2 Enrichment pipeline:** satellite roof-scan imagery + property data enrichment to a Postgres index.
+- **P3.3 Outreach engine:** Twilio + Hume EVI, single-tenant Paragon MVP first.
+
+## Global Standards
+
+- The deliverable is the finished, tested, documented thing, not a plan.
+- Verify with evidence: run Lighthouse, validate schema, run a link checker.
+- Never fabricate reviews or ratings in schema.
+
+## Verification Gates
+
+- Phase 1 done when Lighthouse targets hit; schema validates; /sitemap.xml resolves 200; CLS <0.1.
+- Phase 2 done when marketplace renders from config, 5 demos live, CTA creates a CRM lead.
+- Phase 3 done when the single-tenant Paragon MVP runs the full pipeline with the compliance spine, tested.
+
+## Needs Jarad
+
+- Google Business Profile URL + social profile URLs.
+- Confirmation of Paragon service radius for the geo expansion.
+- The 5 chosen Vercel templates (+ license check).
+- API keys for imagery, property data, Twilio, Hume; CRM sending accounts.`;
+
+$('buildBtn').addEventListener('click',build);
+$('exampleBtn').addEventListener('click',()=>{$('brief').value=EXAMPLE;if(!$('repo').value)$('repo').value='github.com/paragon/paragon-site';build();});
+$('clearBtn').addEventListener('click',()=>{$('brief').value='';$('repo').value='';$('plan').hidden=true;$('empty').hidden=false;$('empty').textContent='Awaiting a brief. Paste one on the left, or load the ECO MATRIX example.';try{localStorage.removeItem('sb.brief');}catch(e){}});
+$('phaseSel').addEventListener('change',e=>renderCode(+e.target.value));
+$('brief').addEventListener('input',()=>{clearTimeout(window._t);window._t=setTimeout(build,300);});
+$('copyBtn').addEventListener('click',async()=>{try{await navigator.clipboard.writeText(renderCommands(currentPlan,+$('phaseSel').value).block);$('copyBtn').textContent='Copied ✓';setTimeout(()=>$('copyBtn').textContent='Copy',1400);}catch(e){$('copyBtn').textContent='Copy failed';}});
+
+// theme toggle
+const rootEl=document.documentElement;
+$('themeBtn').addEventListener('click',()=>{const cur=rootEl.getAttribute('data-theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');rootEl.setAttribute('data-theme',cur==='dark'?'light':'dark');});
+
+// restore
+try{const b=localStorage.getItem('sb.brief'),r=localStorage.getItem('sb.repo');if(r)$('repo').value=r;if(b){$('brief').value=b;build();}}catch(e){}
+</script>
+</body>
+</html>

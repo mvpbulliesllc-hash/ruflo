@@ -48,6 +48,8 @@
     "build:ts": "cd v3/@claude-flow/cli && npm run build || true",
     "test": "vitest",
     "test:ui": "vitest --ui",
+    "swarm:build": "node scripts/swarm-builder/cli.mjs",
+    "test:swarm-builder": "node scripts/__tests__/swarm-builder.test.mjs",
     "test:security": "vitest run v3/__tests__/security/",
     "lint": "cd v3/@claude-flow/cli && npm run lint || true",
     "security:audit": "npm audit --audit-level high",
