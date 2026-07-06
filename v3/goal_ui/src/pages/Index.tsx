@@ -326,6 +326,24 @@ export default function Index() {
     }
   };
 
+  const testModel = async () => {
+    setIntegrationBusy(true);
+    try {
+      const response = await fetch("/api/integrations/nous-chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: "Reply in one short sentence that Eco AI model routing is online.", maxTokens: 48 }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || data.error || "Model call failed");
+      setActionMessage(data.content || "Nous model call completed.");
+    } catch (error) {
+      setActionMessage(error instanceof Error ? error.message : "Model call failed.");
+    } finally {
+      setIntegrationBusy(false);
+    }
+  };
+
   useEffect(() => {
     void refreshIntegrations();
   }, []);
@@ -551,6 +569,9 @@ export default function Index() {
                 <button className="tiny-button" type="button" onClick={testVoice} disabled={integrationBusy}>
                   Voice test
                 </button>
+                <button className="tiny-button span-two" type="button" onClick={testModel} disabled={integrationBusy}>
+                  Model test
+                </button>
               </div>
             </section>
 
@@ -563,7 +584,7 @@ export default function Index() {
                 <Network size={17} />
               </div>
               <div className="memory-map compact-map">
-                {["stripe", "github", "attio", "voice", "composio"].map((node, index) => (
+                {["stripe", "github", "attio", "nous", "composio"].map((node, index) => (
                   <span key={node} style={{ "--node-index": index } as React.CSSProperties}>
                     {node}
                   </span>

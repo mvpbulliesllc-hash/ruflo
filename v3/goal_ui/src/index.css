@@ -518,6 +518,10 @@ textarea:focus {
   opacity: 0.55;
 }
 
+.tiny-button.span-two {
+  grid-column: 1 / -1;
+}
+
 .agent-row {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) 68px;

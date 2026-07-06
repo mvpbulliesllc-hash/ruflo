@@ -11,7 +11,7 @@ type IntegrationStatus = {
   name: string;
   configured: boolean;
   ok: boolean;
-  mode: "live" | "test" | "link" | "server" | "needs_model" | "configured";
+  mode: "live" | "test" | "link" | "server" | "needs_model" | "configured" | "model";
   message: string;
 };
 
@@ -59,7 +59,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const vercelToken = env("VERCEL_API_TOKEN");
   const elevenLabsKey = env("ELEVENLABS_API_KEY") || env("ELEVEN_LABS_API_KEY");
   const composioKey = env("COMPOSIO_API_KEY");
-  const anthropicKey = env("ANTHROPIC_API_KEY");
+  const modelKey = env("NOUS_API_KEY") || env("HERMES_API_KEY");
+  const modelName = env("NOUS_MODEL") || env("ECO_AI_MODEL") || "nvidia/nemotron-3-ultra-550b-a55b";
 
   const checks = await Promise.all([
     statusFromFetch("stripe", "Stripe", hasValue(stripeKey), stripeMode === "live" ? "live" : "test", () =>
@@ -118,23 +119,31 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       message: "Connector console link ready",
     },
     {
+      id: "nous",
+      name: "Nous / Hermes",
+      configured: hasValue(modelKey),
+      ok: hasValue(modelKey),
+      mode: "model",
+      message: hasValue(modelKey) ? "Model endpoint key ready" : "Missing model API key",
+    },
+    {
       id: "composio",
       name: "Composio",
       configured: hasValue(composioKey),
       ok: hasValue(composioKey),
-      mode: hasValue(anthropicKey) ? "server" : "needs_model",
-      message: hasValue(anthropicKey)
-        ? "Tool router key and model key ready"
-        : "Tool router key ready. Add ANTHROPIC_API_KEY to run model calls.",
+      mode: hasValue(modelKey) ? "server" : "needs_model",
+      message: hasValue(modelKey)
+        ? "Tool router key and Nous model key ready"
+        : "Tool router key ready. Add NOUS_API_KEY or HERMES_API_KEY to run model calls.",
     },
   ];
 
   sendJson(res, 200, {
     generatedAt: new Date().toISOString(),
     model: {
-      name: env("ECO_AI_MODEL") || "claude-sonnet-4-6",
-      configured: hasValue(anthropicKey),
-      provider: "anthropic",
+      name: modelName,
+      configured: hasValue(modelKey),
+      provider: "nousresearch",
     },
     integrations: [...checks, ...passive],
   });
