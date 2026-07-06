@@ -157,6 +157,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       message: hasValue(env("AGENTMAIL_API_KEY")) ? "Agent mail key stored" : "Missing mail key",
     },
     {
+      id: "cal",
+      name: "Cal.com",
+      configured: hasValue(env("CAL_API_KEY")) || hasValue(env("CAL_BOOKING_URL")),
+      ok: hasValue(env("CAL_API_KEY")) || hasValue(env("CAL_BOOKING_URL")),
+      mode: "link",
+      message: hasValue(env("CAL_BOOKING_URL")) ? "Demo booking link ready" : "Missing booking URL",
+    },
+    {
       id: "airbyte",
       name: "Airbyte",
       configured: hasValue(env("AIRBYTE_CONNECTORS_URL")),

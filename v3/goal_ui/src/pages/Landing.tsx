@@ -12,6 +12,8 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
+const bookingUrl = "https://cal.com/jarad-derochey-kmzsge";
+
 export default function Landing() {
   const [playbackId, setPlaybackId] = useState("");
   const services = [
@@ -71,10 +73,12 @@ export default function Landing() {
           <div className="landing-actions">
             <a
               className="primary-glass"
-              href="mailto:j@ecoaisolutions.com?subject=Eco%20AI%20deployment%20call"
+              href={bookingUrl}
+              target="_blank"
+              rel="noopener noreferrer"
             >
               <BriefcaseBusiness size={17} />
-              Book a deployment call
+              Book a demo
             </a>
             <a className="secondary-glass" href="#video">
               <Play size={17} />
@@ -197,9 +201,9 @@ export default function Landing() {
           We map one workflow, deploy a live agent on it, and show you the result. You watch it work
           on your own operation first. Then you decide.
         </p>
-        <a className="primary-glass" href="mailto:j@ecoaisolutions.com?subject=Eco%20AI%20deployment%20call">
+        <a className="primary-glass" href={bookingUrl} target="_blank" rel="noopener noreferrer">
           <BriefcaseBusiness size={17} />
-          Book a deployment call
+          Book a demo
         </a>
       </section>
 
