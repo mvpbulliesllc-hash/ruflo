@@ -3,7 +3,6 @@ import {
   Activity,
   Brain,
   Check,
-  ChevronRight,
   CreditCard,
   Database,
   GitBranch,
@@ -14,7 +13,6 @@ import {
   Play,
   Radar,
   RefreshCcw,
-  Route,
   Search,
   Send,
   ShieldCheck,
@@ -48,65 +46,59 @@ type IntegrationPayload = {
 type PlanStep = {
   id: string;
   title: string;
+  owner: string;
   description: string;
   icon: typeof Search;
-  detail: string[];
 };
 
 const planSteps: PlanStep[] = [
   {
-    id: "goal",
-    title: "Goal analysis",
-    description: "Parse the requested outcome into constraints, dependencies, and success criteria.",
+    id: "triage",
+    title: "Triage command",
+    owner: "Planner",
+    description: "Parse operator intent, classify urgency, and define the next finish state.",
     icon: Search,
-    detail: ["Extract required outcome", "Rank risk", "Map finish state"],
   },
   {
-    id: "state",
-    title: "Workspace assessment",
-    description: "Inspect repo state, deployment surface, API routes, and provider readiness.",
+    id: "workspace",
+    title: "Inspect workspace",
+    owner: "Ops",
+    description: "Check repo, deployment state, environment variables, and public routes.",
     icon: Radar,
-    detail: ["Read project scripts", "Check API env", "Confirm deploy target"],
   },
   {
-    id: "context",
-    title: "Context retrieval",
-    description: "Pull integration status, model config, and reusable runtime context.",
+    id: "providers",
+    title: "Check providers",
+    owner: "Research",
+    description: "Refresh model, Stripe, Vercel, GitHub, Attio, Composio, and voice health.",
     icon: Database,
-    detail: ["Refresh integrations", "Attach model", "Load route health"],
-  },
-  {
-    id: "plan",
-    title: "Plan synthesis",
-    description: "Build a short execution path and assign work lanes to the active agents.",
-    icon: GitBranch,
-    detail: ["Sequence work", "Split lanes", "Set gates"],
   },
   {
     id: "execute",
-    title: "Execution",
-    description: "Run the model, trigger provider actions, and stream operational feedback.",
+    title: "Execute action",
+    owner: "Builder",
+    description: "Run the model route, trigger provider action, or update the deployed app.",
     icon: Zap,
-    detail: ["Call model", "Create checkout", "Play voice route"],
   },
   {
     id: "verify",
-    title: "Verification",
-    description: "Check build, deployment, integrations, and operator-facing result state.",
+    title: "Verify output",
+    owner: "Reviewer",
+    description: "Confirm API response, UI state, deployment status, and unresolved blockers.",
     icon: ShieldCheck,
-    detail: ["Smoke test UI", "Verify API", "Report blocker"],
   },
 ];
 
 const agents = [
-  { name: "Planner", role: "Goal decomposition", load: 18 },
-  { name: "Research", role: "Context scan", load: 12 },
-  { name: "Builder", role: "Implementation lane", load: 28 },
-  { name: "Reviewer", role: "Quality gates", load: 10 },
-  { name: "Ops", role: "Deploy and observe", load: 16 },
+  { name: "Planner", role: "Intent routing", lane: "Queue", load: 18 },
+  { name: "Research", role: "Provider and context scan", lane: "Inputs", load: 12 },
+  { name: "Builder", role: "Repo and deploy changes", lane: "Execution", load: 28 },
+  { name: "Reviewer", role: "Checks and regression gates", lane: "QA", load: 10 },
+  { name: "Ops", role: "Vercel, DNS, runtime health", lane: "Infra", load: 16 },
 ];
 
-const defaultGoal = "Launch Eco AI as a production agent planning console on ecoaisolutions.com";
+const navItems = ["Command", "Queue", "Integrations", "Billing", "Voice", "Deploys", "CRM"];
+const defaultGoal = "Review provider health, run the Eco AI model route, and surface any blockers.";
 
 function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
@@ -122,15 +114,18 @@ async function readApiJson<T>(response: Response): Promise<T> {
 
 export default function Index() {
   const [goal, setGoal] = useState(defaultGoal);
-  const [prompt, setPrompt] = useState("Say Eco AI online in one clean sentence.");
+  const [prompt, setPrompt] = useState("Give me the current Eco AI operating status in one concise paragraph.");
   const [runState, setRunState] = useState<RunState>("ready");
   const [activeStep, setActiveStep] = useState(0);
   const [selectedStep, setSelectedStep] = useState(planSteps[0]);
   const [integrationPayload, setIntegrationPayload] = useState<IntegrationPayload | null>(null);
   const [busyAction, setBusyAction] = useState<string | null>(null);
-  const [actionMessage, setActionMessage] = useState("Eco AI is ready.");
+  const [actionMessage, setActionMessage] = useState("Standing by for operator command.");
+  const [activeNav, setActiveNav] = useState("Command");
 
   const connectedCount = integrationPayload?.integrations.filter((item) => item.ok).length ?? 0;
+  const totalIntegrations = integrationPayload?.integrations.length ?? 0;
+  const healthPercent = totalIntegrations ? Math.round((connectedCount / totalIntegrations) * 100) : 0;
   const progress =
     runState === "ready"
       ? 0
@@ -141,13 +136,23 @@ export default function Index() {
     return [...(integrationPayload?.integrations ?? [])].sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
   }, [integrationPayload]);
 
+  const eventLines = useMemo(
+    () => [
+      { label: "operator", value: goal },
+      { label: "runtime", value: actionMessage },
+      { label: "model", value: integrationPayload?.model.name ?? "nvidia/nemotron-3-ultra-550b-a55b" },
+      { label: "health", value: `${connectedCount}/${totalIntegrations || 10} providers connected` },
+    ],
+    [actionMessage, connectedCount, goal, integrationPayload?.model.name, totalIntegrations],
+  );
+
   const refreshIntegrations = async () => {
     setBusyAction("refresh");
     try {
       const response = await fetch("/api/integrations/status");
       const data = await readApiJson<IntegrationPayload>(response);
       setIntegrationPayload(data);
-      setActionMessage(response.ok ? "Integration status refreshed." : "Status check returned an error.");
+      setActionMessage(response.ok ? "Provider status refreshed." : "Status check returned an error.");
     } catch (error) {
       setActionMessage(error instanceof Error ? error.message : "Integration status failed.");
     } finally {
@@ -180,7 +185,7 @@ export default function Index() {
       const response = await fetch("/api/integrations/voice", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: "Eco AI integrations are online and ready." }),
+        body: JSON.stringify({ text: "Eco AI back office is online." }),
       });
       const data = await readApiJson<{ audio?: string; detail?: string; error?: string }>(response);
       if (!response.ok) throw new Error(data.detail || data.error || "Voice generation failed");
@@ -200,11 +205,11 @@ export default function Index() {
       const response = await fetch("/api/integrations/nous-chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: sourcePrompt, maxTokens: 128 }),
+        body: JSON.stringify({ prompt: sourcePrompt, maxTokens: 160 }),
       });
       const data = await readApiJson<{ content?: string; detail?: string; error?: string }>(response);
       if (!response.ok) throw new Error(data.detail || data.error || "Model call failed");
-      setActionMessage(data.content || "Nous model call completed.");
+      setActionMessage(data.content || "Model call completed.");
     } catch (error) {
       setActionMessage(error instanceof Error ? error.message : "Model call failed.");
     } finally {
@@ -216,7 +221,7 @@ export default function Index() {
     setRunState("running");
     setActiveStep(0);
     setSelectedStep(planSteps[0]);
-    setActionMessage("Execution plan started.");
+    setActionMessage("Operational queue started.");
     void refreshIntegrations();
   };
 
@@ -232,7 +237,7 @@ export default function Index() {
     setRunState("ready");
     setActiveStep(0);
     setSelectedStep(planSteps[0]);
-    setActionMessage("Plan reset.");
+    setActionMessage("Queue reset.");
   };
 
   useEffect(() => {
@@ -247,8 +252,8 @@ export default function Index() {
         if (current >= planSteps.length - 1) {
           setRunState("complete");
           setSelectedStep(planSteps[planSteps.length - 1]);
-          setActionMessage("Plan complete. Verify deployment and integrations.");
-          void testModel(`Summarize this Eco AI goal in one sentence: ${goal}`);
+          setActionMessage("Queue complete. Review provider health and unresolved errors.");
+          void testModel(`Summarize this back-office operation in one paragraph: ${goal}`);
           return current;
         }
         const next = current + 1;
@@ -261,189 +266,239 @@ export default function Index() {
   }, [runState, activeStep, goal]);
 
   return (
-    <main className="eco-console">
+    <main className="ops-shell">
       <div className="ambient-bg" />
       <div className="grid-noise" />
 
-      <header className="topbar">
+      <aside className="sidebar">
         <div className="brand-mark" aria-label="Eco AI">
           <Sparkles size={17} />
           <span>Eco AI</span>
         </div>
-        <div className="top-status">
-          <span>{connectedCount} connected</span>
-          <span>{integrationPayload?.model.provider ?? "nousresearch"}</span>
-          <span>{runState}</span>
+        <nav className="side-nav" aria-label="Back office navigation">
+          {navItems.map((item) => (
+            <button className={cx(item === activeNav && "active")} key={item} type="button" onClick={() => setActiveNav(item)}>
+              {item}
+            </button>
+          ))}
+        </nav>
+        <div className="sidebar-footer">
+          <span>Production</span>
+          <strong>{healthPercent}% health</strong>
         </div>
-      </header>
+      </aside>
 
-      <section className="hero-workspace" aria-label="Eco AI workspace">
-        <div className="hero-copy">
-          <span className="section-label">Eco AI</span>
-          <h1>Autonomous work, without the clutter.</h1>
-          <p>A clean operating surface for model calls, payments, voice, CRM data, deploys, and workspace actions.</p>
+      <section className="ops-main">
+        <header className="ops-topbar">
+          <div>
+            <span className="section-label">Back office</span>
+            <h1>Operations command center</h1>
+          </div>
+          <div className="top-status">
+            <span>{runState}</span>
+            <span>{connectedCount}/{totalIntegrations || 10} connected</span>
+            <span>{integrationPayload?.model.provider ?? "nousresearch"}</span>
+          </div>
+        </header>
 
-          <div className="goal-card">
-            <label htmlFor="goal">Goal</label>
+        <section className="kpi-grid" aria-label="Operations summary">
+          <div className="kpi-card">
+            <span>Queue</span>
+            <strong>{progress}%</strong>
+            <em>{selectedStep.title}</em>
+          </div>
+          <div className="kpi-card">
+            <span>Providers</span>
+            <strong>{connectedCount}/{totalIntegrations || 10}</strong>
+            <em>{healthPercent}% operational</em>
+          </div>
+          <div className="kpi-card">
+            <span>Model</span>
+            <strong>{integrationPayload?.model.configured ? "Ready" : "Missing"}</strong>
+            <em>{integrationPayload?.model.name ?? "Nemotron Ultra"}</em>
+          </div>
+          <div className="kpi-card">
+            <span>Last event</span>
+            <strong>{busyAction ?? "idle"}</strong>
+            <em>{actionMessage}</em>
+          </div>
+        </section>
+
+        <section className="command-grid">
+          <div className="glass-panel command-panel">
+            <div className="panel-heading">
+              <div>
+                <span className="section-label">Operator input</span>
+                <h2>Command queue</h2>
+              </div>
+              <TerminalSquare size={18} />
+            </div>
+            <label htmlFor="goal">Work order</label>
             <textarea id="goal" value={goal} onChange={(event) => setGoal(event.target.value)} />
-            <div className="hero-actions">
+            <div className="button-row">
               <button className="primary-glass" type="button" onClick={toggleRun} disabled={busyAction !== null}>
                 {runState === "running" ? <Pause size={18} /> : <Play size={18} />}
-                {runState === "running" ? "Pause plan" : "Run plan"}
+                {runState === "running" ? "Pause queue" : "Run queue"}
               </button>
               <button className="secondary-glass" type="button" onClick={resetPlan}>
                 Reset
               </button>
               <button className="secondary-glass" type="button" onClick={refreshIntegrations} disabled={busyAction !== null}>
                 {busyAction === "refresh" ? <Loader2 size={18} className="spin" /> : <RefreshCcw size={18} />}
-                Refresh
+                Refresh providers
               </button>
             </div>
           </div>
-        </div>
 
-        <aside className="control-glass" aria-label="Live controls">
-          <div className="panel-topline">
-            <span>Live controls</span>
-            <span>{progress}%</span>
+          <div className="glass-panel terminal-panel">
+            <div className="panel-heading">
+              <div>
+                <span className="section-label">Model terminal</span>
+                <h2>Nous command</h2>
+              </div>
+              <Brain size={18} />
+            </div>
+            <div className="model-card">
+              <span>Active model</span>
+              <strong>{integrationPayload?.model.name ?? "nvidia/nemotron-3-ultra-550b-a55b"}</strong>
+            </div>
+            <div className="prompt-box">
+              <textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} aria-label="Model prompt" />
+              <button className="send-button" type="button" onClick={() => testModel()} disabled={busyAction !== null}>
+                {busyAction === "model" ? <Loader2 size={17} className="spin" /> : <Send size={17} />}
+              </button>
+            </div>
+          </div>
+        </section>
+
+        <section className="work-grid">
+          <div className="glass-panel queue-panel">
+            <div className="panel-heading">
+              <div>
+                <span className="section-label">Execution</span>
+                <h2>Work queue</h2>
+              </div>
+              <span className="progress-pill">{progress}%</span>
+            </div>
+            <div className="queue-table">
+              {planSteps.map((step, index) => {
+                const Icon = step.icon;
+                const status: StepStatus =
+                  runState === "complete" || index < activeStep ? "complete" : index === activeStep && runState !== "ready" ? "active" : "pending";
+                return (
+                  <button
+                    className={cx("queue-row", status)}
+                    key={step.id}
+                    type="button"
+                    onClick={() => setSelectedStep(step)}
+                  >
+                    <span className="row-icon">
+                      <Icon size={17} />
+                    </span>
+                    <strong>{step.title}</strong>
+                    <span>{step.owner}</span>
+                    <em>{step.description}</em>
+                    <b>{status}</b>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          <div className="model-card">
-            <span>Active model</span>
-            <strong>{integrationPayload?.model.name ?? "nvidia/nemotron-3-ultra-550b-a55b"}</strong>
-            <em>{actionMessage}</em>
+          <div className="glass-panel">
+            <div className="panel-heading">
+              <div>
+                <span className="section-label">Selected</span>
+                <h2>{selectedStep.title}</h2>
+              </div>
+              <Activity size={18} />
+            </div>
+            <p className="panel-copy">{selectedStep.description}</p>
+            <div className="event-log">
+              {eventLines.map((event) => (
+                <div key={event.label}>
+                  <span>{event.label}</span>
+                  <p>{event.value}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        <section className="lower-grid">
+          <div className="glass-panel">
+            <div className="panel-heading">
+              <div>
+                <span className="section-label">Agents</span>
+                <h2>Lane state</h2>
+              </div>
+              <Network size={18} />
+            </div>
+            <div className="agent-list">
+              {agents.map((agent, index) => {
+                const isActive = runState === "running" && index === activeStep % agents.length;
+                const isDone = runState === "complete" || index < activeStep % agents.length;
+                return (
+                  <div className="agent-row" key={agent.name}>
+                    <span className={cx("status-dot", isActive ? "warn" : isDone ? "ok" : "off")} />
+                    <div>
+                      <strong>{agent.name}</strong>
+                      <span>{agent.role}</span>
+                    </div>
+                    <em>{agent.lane}</em>
+                    <meter min={0} max={100} value={isActive ? 78 : agent.load} />
+                  </div>
+                );
+              })}
+            </div>
           </div>
 
-          <div className="prompt-box">
-            <textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} aria-label="Model prompt" />
-            <button className="send-button" type="button" onClick={() => testModel()} disabled={busyAction !== null}>
-              {busyAction === "model" ? <Loader2 size={17} className="spin" /> : <Send size={17} />}
-            </button>
+          <div className="glass-panel integrations-panel">
+            <div className="panel-heading">
+              <div>
+                <span className="section-label">Providers</span>
+                <h2>Integration health</h2>
+              </div>
+              <button className="icon-button" type="button" onClick={refreshIntegrations} aria-label="Refresh integrations">
+                {busyAction === "refresh" ? <Loader2 size={17} className="spin" /> : <RefreshCcw size={17} />}
+              </button>
+            </div>
+            <div className="integration-list">
+              {visibleIntegrations.map((item) => (
+                <div className="integration-row" key={item.id}>
+                  <span className={cx("status-dot", item.ok ? "ok" : item.configured ? "warn" : "off")} />
+                  <div>
+                    <strong>{item.name}</strong>
+                    <span>{item.message}</span>
+                  </div>
+                  <em>{item.mode}</em>
+                </div>
+              ))}
+            </div>
           </div>
 
-          <div className="quick-actions">
+          <div className="glass-panel action-panel">
+            <div className="panel-heading">
+              <div>
+                <span className="section-label">Actions</span>
+                <h2>Provider controls</h2>
+              </div>
+              <Zap size={18} />
+            </div>
             <button type="button" onClick={startCheckout} disabled={busyAction !== null}>
               <CreditCard size={16} />
-              Stripe
+              Create Stripe checkout
             </button>
             <button type="button" onClick={testVoice} disabled={busyAction !== null}>
               <Headphones size={16} />
-              Voice
+              Test voice route
+            </button>
+            <button type="button" onClick={() => testModel(`Run an operations check for: ${goal}`)} disabled={busyAction !== null}>
+              <Zap size={16} />
+              Run model check
             </button>
           </div>
-        </aside>
-      </section>
-
-      <section className="ops-grid" aria-label="Execution console">
-        <div className="glass-panel timeline-panel">
-          <div className="panel-heading">
-            <div>
-              <span className="section-label">Execution</span>
-              <h2>Plan timeline</h2>
-            </div>
-            <div className="progress-ring">{progress}%</div>
-          </div>
-
-          <div className="timeline-list">
-            {planSteps.map((step, index) => {
-              const Icon = step.icon;
-              const status: StepStatus =
-                runState === "complete" || index < activeStep ? "complete" : index === activeStep && runState !== "ready" ? "active" : "pending";
-              return (
-                <button
-                  className={cx("timeline-row", status)}
-                  key={step.id}
-                  type="button"
-                  onClick={() => setSelectedStep(step)}
-                >
-                  <span className="row-icon">
-                    <Icon size={18} />
-                  </span>
-                  <div>
-                    <strong>{step.title}</strong>
-                    <span>{step.description}</span>
-                  </div>
-                  <ChevronRight size={16} />
-                </button>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="glass-panel detail-panel">
-          <div className="panel-heading">
-            <div>
-              <span className="section-label">Selected step</span>
-              <h2>{selectedStep.title}</h2>
-            </div>
-            <Activity size={18} />
-          </div>
-          <p>{selectedStep.description}</p>
-          <div className="detail-list">
-            {selectedStep.detail.map((item) => (
-              <span key={item}>
-                <Check size={14} />
-                {item}
-              </span>
-            ))}
-          </div>
-        </div>
-
-        <div className="glass-panel">
-          <div className="panel-heading">
-            <div>
-              <span className="section-label">Agents</span>
-              <h2>Swarm state</h2>
-            </div>
-            <Brain size={18} />
-          </div>
-          <div className="agent-list">
-            {agents.map((agent, index) => {
-              const isActive = runState === "running" && index === activeStep % agents.length;
-              const isDone = runState === "complete" || index < activeStep % agents.length;
-              return (
-                <div className="agent-row" key={agent.name}>
-                  <span className={cx("status-dot", isActive ? "warn" : isDone ? "ok" : "off")} />
-                  <div>
-                    <strong>{agent.name}</strong>
-                    <span>{agent.role}</span>
-                  </div>
-                  <meter min={0} max={100} value={isActive ? 78 : agent.load} />
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        <div className="glass-panel integrations-panel">
-          <div className="panel-heading">
-            <div>
-              <span className="section-label">Integrations</span>
-              <h2>{connectedCount} connected</h2>
-            </div>
-            <button className="icon-button" type="button" onClick={refreshIntegrations} aria-label="Refresh integrations">
-              {busyAction === "refresh" ? <Loader2 size={17} className="spin" /> : <RefreshCcw size={17} />}
-            </button>
-          </div>
-          <div className="integration-list">
-            {visibleIntegrations.map((item) => (
-              <div className="integration-row" key={item.id}>
-                <span className={cx("status-dot", item.ok ? "ok" : item.configured ? "warn" : "off")} />
-                <div>
-                  <strong>{item.name}</strong>
-                  <span>{item.message}</span>
-                </div>
-                <em>{item.mode}</em>
-              </div>
-            ))}
-            {!integrationPayload && (
-              <div className="empty-status">
-                <Zap size={16} />
-                <span>Loading integrations...</span>
-              </div>
-            )}
-          </div>
-        </div>
+        </section>
       </section>
     </main>
   );
