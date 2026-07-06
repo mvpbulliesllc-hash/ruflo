@@ -53,8 +53,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const stripeMode = env("STRIPE_MODE") || "test";
   const stripeKey =
     stripeMode === "live"
-      ? env("STRIPE_SECRET_KEY") || env("STRIPE_RESTRICTED_KEY_LIVE")
-      : env("STRIPE_SECRET_KEY_TEST");
+      ? env("STRIPE_RESTRICTED_KEY_LIVE") || env("STRIPE_SECRET_KEY")
+      : env("STRIPE_SECRET_KEY_TEST") || env("STRIPE_RESTRICTED_KEY_TEST");
   const githubToken = env("GITHUB_PAT_TOKEN") || env("GITHUB_API_PAT_TOKEN");
   const vercelToken = env("VERCEL_API_TOKEN");
   const elevenLabsKey = env("ELEVENLABS_API_KEY") || env("ELEVEN_LABS_API_KEY");

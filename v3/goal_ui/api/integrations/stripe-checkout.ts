@@ -24,8 +24,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const stripeMode = env("STRIPE_MODE") || "test";
   const key =
     stripeMode === "live"
-      ? env("STRIPE_SECRET_KEY") || env("STRIPE_RESTRICTED_KEY_LIVE")
-      : env("STRIPE_SECRET_KEY_TEST");
+      ? env("STRIPE_RESTRICTED_KEY_LIVE") || env("STRIPE_SECRET_KEY")
+      : env("STRIPE_SECRET_KEY_TEST") || env("STRIPE_RESTRICTED_KEY_TEST");
 
   if (!key) return sendJson(res, 500, { error: "stripe_not_configured" });
 
