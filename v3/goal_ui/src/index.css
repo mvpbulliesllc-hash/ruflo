@@ -182,6 +182,76 @@ button {
   font-size: 12px;
 }
 
+.landing-services {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: minmax(260px, 0.74fr) minmax(0, 1.26fr);
+  gap: clamp(24px, 5vw, 70px);
+  align-items: start;
+  padding: 20px clamp(18px, 6vw, 86px) 48px;
+}
+
+.services-copy {
+  position: sticky;
+  top: 28px;
+}
+
+.services-copy h2 {
+  max-width: 520px;
+  margin: 0;
+  color: #fff;
+  font-size: clamp(32px, 4.8vw, 64px);
+  font-weight: 320;
+  letter-spacing: 0;
+  line-height: 1;
+}
+
+.services-copy p {
+  max-width: 560px;
+  margin: 20px 0 0;
+  color: rgba(255, 255, 255, 0.66);
+  font-size: clamp(15px, 1.4vw, 18px);
+  line-height: 1.6;
+}
+
+.service-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.service-card {
+  min-height: 210px;
+  border: 1px solid var(--line);
+  border-radius: 24px;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.11), rgba(255, 255, 255, 0.04)),
+    rgba(255, 255, 255, 0.045);
+  padding: 22px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.service-card svg {
+  color: #fff;
+  opacity: 0.88;
+}
+
+.service-card h3 {
+  margin: 48px 0 0;
+  color: #fff;
+  font-size: 20px;
+  font-weight: 680;
+  letter-spacing: 0;
+}
+
+.service-card p {
+  margin: 12px 0 0;
+  color: rgba(255, 255, 255, 0.63);
+  font-size: 14px;
+  line-height: 1.55;
+}
+
 .landing-strip {
   position: relative;
   z-index: 2;
@@ -893,6 +963,24 @@ meter::-webkit-meter-optimum-value {
 
   .landing-video {
     border-radius: 22px;
+  }
+
+  .landing-services {
+    grid-template-columns: 1fr;
+    padding: 8px 16px 34px;
+  }
+
+  .services-copy {
+    position: static;
+  }
+
+  .service-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .service-card {
+    min-height: 180px;
+    border-radius: 20px;
   }
 
   .landing-header {

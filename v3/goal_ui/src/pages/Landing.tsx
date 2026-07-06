@@ -1,9 +1,31 @@
 import React, { useEffect, useState } from "react";
-import { ArrowRight, Lock, Play, Sparkles } from "lucide-react";
+import { ArrowRight, Bot, Database, Lock, Mail, Mic2, Play, Sparkles, Workflow } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export default function Landing() {
   const [playbackId, setPlaybackId] = useState("");
+  const services = [
+    {
+      icon: Bot,
+      title: "Agentic operators",
+      body: "AI agents that reason through tasks, call tools, update systems, and report what changed.",
+    },
+    {
+      icon: Workflow,
+      title: "Workflow automation",
+      body: "Event-driven operations across CRM, enrichment, email, storage, databases, queues, and internal approvals.",
+    },
+    {
+      icon: Mic2,
+      title: "Inbound and outbound voice",
+      body: "Voice agents for intake, qualification, follow-up, scheduling, handoffs, and customer support.",
+    },
+    {
+      icon: Database,
+      title: "Enterprise data layer",
+      body: "Connected Postgres, Supabase, NileDB, file storage, video, and integration health for production operations.",
+    },
+  ];
 
   useEffect(() => {
     fetch("/api/integrations/mux-playback")
@@ -30,10 +52,11 @@ export default function Landing() {
       <section className="landing-stage">
         <div className="landing-copy">
           <span className="section-label">Eco AI Solutions</span>
-          <h1>Operational AI for the work behind the work.</h1>
+          <h1>Enterprise-grade AI automation for real back-office work.</h1>
           <p>
-            A public front door for Eco AI, backed by a private operations console for agents, jobs,
-            provider health, video, storage, data, and execution.
+            Eco AI builds agentic systems that run workflows, manage data, operate voice channels,
+            trigger jobs, enrich leads, route messages, and keep the business moving from one private
+            operations console.
           </p>
           <div className="landing-actions">
             <Link className="primary-glass" to="/ops">
@@ -62,14 +85,50 @@ export default function Landing() {
             </div>
           )}
           <div className="video-caption">
-            <span>Landing media</span>
+            <span>Eco AI media</span>
             <strong>Sound enabled through player controls</strong>
           </div>
         </div>
       </section>
 
+      <section className="landing-services" aria-label="Eco AI capabilities">
+        <div className="services-copy">
+          <h2>Built for operators, not demo decks.</h2>
+          <p>
+            Agentic agents, workflow orchestration, inbound and outbound voice, agent mail, Clay
+            enrichment, Firecrawl research, Mux video, storage, auth, and production database wiring
+            are treated as one operating system.
+          </p>
+        </div>
+        <div className="service-grid">
+          {services.map((service) => {
+            const Icon = service.icon;
+
+            return (
+              <article className="service-card" key={service.title}>
+                <Icon size={21} />
+                <h3>{service.title}</h3>
+                <p>{service.body}</p>
+              </article>
+            );
+          })}
+        </div>
+      </section>
+
       <section className="landing-strip">
-        {["Inngest jobs", "Mux video", "Clay workflows", "Three data stores", "Private ops auth"].map((item) => (
+        {[
+          "Agentic agents",
+          "Workflow automation",
+          "Inbound voice",
+          "Outbound voice",
+          "Clay enrichment",
+          "Firecrawl research",
+          "Mux video",
+          "Three databases",
+          "Storage",
+          "Agent mail",
+          "Private ops auth",
+        ].map((item) => (
           <span key={item}>
             {item}
             <ArrowRight size={14} />
