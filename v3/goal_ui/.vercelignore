@@ -1,0 +1,10 @@
+node_modules
+dist
+.git
+.cache
+.vite
+coverage
+*.log
+ruflo-*.png
+supabase
+docs
