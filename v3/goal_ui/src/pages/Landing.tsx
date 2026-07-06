@@ -2,8 +2,7 @@ import React, { useEffect, useState } from "react";
 import {
   ArrowRight,
   Bot,
-  CheckCircle2,
-  CreditCard,
+  BriefcaseBusiness,
   Database,
   Lock,
   Mic2,
@@ -15,35 +14,27 @@ import { Link } from "react-router-dom";
 
 export default function Landing() {
   const [playbackId, setPlaybackId] = useState("");
-  const [checkoutState, setCheckoutState] = useState<"idle" | "loading">("idle");
-  const [checkoutMessage, setCheckoutMessage] = useState("");
   const services = [
     {
       icon: Bot,
-      title: "Agentic back-office operator",
-      body: "An AI operator that handles intake, follows up, updates systems, triggers workflows, and escalates the right work.",
-    },
-    {
-      icon: Workflow,
-      title: "Workflow and CRM execution",
-      body: "Clay enrichment, Firecrawl research, data entry, lead routing, approvals, storage, jobs, and provider health in one flow.",
+      title: "Revenue agents",
+      body: "Answer every lead in seconds, qualify, follow up, and book so nothing leaks.",
     },
     {
       icon: Mic2,
-      title: "Inbound and outbound voice agents",
-      body: "Voice agents that answer, qualify, schedule, recover missed opportunities, and hand off hot conversations.",
+      title: "Support agents",
+      body: "Resolve calls, chats, and tickets with no queue and no hold music.",
     },
     {
       icon: Database,
-      title: "Enterprise-grade data layer",
-      body: "Postgres, Supabase, NileDB, blob storage, video, auth, email, and auditability wired for production operations.",
+      title: "Operations agents",
+      body: "Run the back office: data, scheduling, follow-through, reporting, and handoffs.",
     },
-  ];
-  const outcomes = [
-    "Missed call and lead recovery",
-    "Inbound and outbound voice agent flows",
-    "CRM enrichment and follow-up automation",
-    "Back-office workflow map and build plan",
+    {
+      icon: Workflow,
+      title: "Build agents",
+      body: "Ship code, content, automations, and campaigns on demand.",
+    },
   ];
 
   useEffect(() => {
@@ -52,24 +43,6 @@ export default function Landing() {
       .then((data) => setPlaybackId(data.playbackId || ""))
       .catch(() => setPlaybackId(""));
   }, []);
-
-  const startCheckout = async () => {
-    setCheckoutState("loading");
-    setCheckoutMessage("");
-    try {
-      const response = await fetch("/api/integrations/stripe-checkout", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ offer: "blueprint" }),
-      });
-      const data = await response.json();
-      if (!response.ok || !data.url) throw new Error(data.detail || data.error || "Stripe checkout failed");
-      window.location.href = data.url;
-    } catch (error) {
-      setCheckoutMessage(error instanceof Error ? error.message : "Stripe checkout failed.");
-      setCheckoutState("idle");
-    }
-  };
 
   return (
     <main className="landing-shell">
@@ -89,29 +62,24 @@ export default function Landing() {
       <section className="landing-stage">
         <div className="landing-copy">
           <span className="section-label">Eco AI Solutions</span>
-          <h1>Turn missed calls, inbox chaos, and manual follow-up into an AI-run back office.</h1>
+          <h1>Your next hire isn't a person. It's a workforce.</h1>
           <p>
-            Eco AI installs agentic operators that answer, qualify, enrich, update your CRM, send the
-            follow-up, trigger the workflow, and hand off the money conversations to your team.
+            Eco AI Solutions deploys autonomous AI agent teams that run your sales, support, and
+            operations around the clock, in your voice, wired into your tools, at a fraction of the
+            cost of a single employee.
           </p>
           <div className="landing-actions">
-            <button className="primary-glass" type="button" onClick={startCheckout} disabled={checkoutState === "loading"}>
-              <CreditCard size={17} />
-              {checkoutState === "loading" ? "Opening checkout" : "Start AI Ops Blueprint - $497"}
-            </button>
+            <a
+              className="primary-glass"
+              href="mailto:j@ecoaisolutions.com?subject=Eco%20AI%20deployment%20call"
+            >
+              <BriefcaseBusiness size={17} />
+              Book a deployment call
+            </a>
             <a className="secondary-glass" href="#video">
               <Play size={17} />
-              Play video
+              See it run live
             </a>
-          </div>
-          {checkoutMessage ? <p className="checkout-message">{checkoutMessage}</p> : null}
-          <div className="offer-list" aria-label="Blueprint outcomes">
-            {outcomes.map((outcome) => (
-              <span key={outcome}>
-                <CheckCircle2 size={15} />
-                {outcome}
-              </span>
-            ))}
           </div>
         </div>
 
@@ -136,26 +104,39 @@ export default function Landing() {
         </div>
       </section>
 
-      <section className="offer-band" aria-label="Eco AI offer">
+      <section className="offer-band" aria-label="The problem">
         <div>
-          <span className="section-label">What you are buying</span>
-          <h2>A working plan for an AI operations layer, then a path to build it.</h2>
+          <span className="section-label">The problem</span>
+          <h2>Headcount doesn't scale. The work does.</h2>
         </div>
         <p>
-          The $497 blueprint is the paid front door: we map your intake, follow-up, voice, CRM,
-          data, and automation gaps, then scope the agentic workflows that should be built first.
-          The goal is simple: fewer dropped leads, faster response, cleaner systems, and more work
-          handled without adding headcount.
+          Every growing company hits the same wall. The work outpaces the team. You hire, you train,
+          you wait months, and the backlog still wins. Leads go cold before anyone answers. Tickets
+          stack up. The back office quietly eats your margin. Adding people is slow, expensive, and
+          it caps out, and the best ones still leave.
+        </p>
+      </section>
+
+      <section className="offer-band" aria-label="The shift">
+        <div>
+          <span className="section-label">The shift</span>
+          <h2>We deploy the team instead of making you hire it.</h2>
+        </div>
+        <p>
+          Eco AI builds and runs an autonomous agent workforce inside your business. Not a chatbot.
+          A coordinated team of specialized AI agents that answer, sell, support, research, and
+          execute, 24/7, in your brand's voice, connected to the systems you already use. They go to
+          work the day you turn them on. No ramp. No turnover. No ceiling.
         </p>
       </section>
 
       <section className="landing-services" aria-label="Eco AI capabilities">
         <div className="services-copy">
-          <h2>Built for operators, not software tourists.</h2>
+          <span className="section-label">What they do</span>
+          <h2>Each one specialized. All of them coordinated.</h2>
           <p>
-            Agentic agents, workflow orchestration, inbound and outbound voice, agent mail, Clay
-            enrichment, Firecrawl research, Mux video, storage, auth, and production database wiring
-            are treated as one operating system.
+            One workforce, every channel, always on. Your agents answer, sell, support, research,
+            operate, and build without adding another seat to payroll.
           </p>
         </div>
         <div className="service-grid">
@@ -173,19 +154,67 @@ export default function Landing() {
         </div>
       </section>
 
+      <section className="offer-band" aria-label="The engine">
+        <div>
+          <span className="section-label">The engine</span>
+          <h2>Behind it: a coordinated swarm of 60+ agents.</h2>
+        </div>
+        <p>
+          Most AI solutions are a single model behind a prompt. Ours is an orchestrated swarm of
+          specialized agents with shared memory, smart routing, and self-correction, the architecture
+          used to run autonomous engineering teams. That's why it doesn't just respond. It executes,
+          verifies its own work, and gets sharper every day it runs. The result is a system that
+          operates like a department, not a feature.
+        </p>
+      </section>
+
+      <section className="offer-band" aria-label="The outcome">
+        <div>
+          <span className="section-label">The outcome</span>
+          <h2>One workforce. The output of a team. Less than one salary.</h2>
+        </div>
+        <p>
+          No turnover. No ramp. No sick days. No overtime. No ceiling. Deployed in weeks, not
+          quarters, and running the moment it's live. The work still gets done. It just stops
+          depending on how many people you can find, afford, and keep.
+        </p>
+      </section>
+
+      <section className="proof-section" aria-label="Proof">
+        <span className="section-label">Proof</span>
+        <h2>Verified deployment results will live here.</h2>
+        <p>
+          Case results are published only when they are real, measured, and tied to deployed systems.
+          As deployments go live, this section will show the workflow, what was automated, and the
+          operational result without inflated claims.
+        </p>
+      </section>
+
+      <section className="final-offer" aria-label="The offer">
+        <span className="section-label">The offer</span>
+        <h2>See it running in your business before you commit a dollar.</h2>
+        <p>
+          We map one workflow, deploy a live agent on it, and show you the result. You watch it work
+          on your own operation first. Then you decide.
+        </p>
+        <a className="primary-glass" href="mailto:j@ecoaisolutions.com?subject=Eco%20AI%20deployment%20call">
+          <BriefcaseBusiness size={17} />
+          Book a deployment call
+        </a>
+      </section>
+
       <section className="landing-strip">
         {[
-          "Agentic agents",
-          "Workflow automation",
-          "Inbound voice",
-          "Outbound voice",
-          "Clay enrichment",
-          "Firecrawl research",
-          "Mux video",
-          "Three databases",
-          "Storage",
-          "Agent mail",
-          "Private ops auth",
+          "Revenue agents",
+          "Support agents",
+          "Operations agents",
+          "Build agents",
+          "60+ agent swarm",
+          "Shared memory",
+          "Smart routing",
+          "Self-correction",
+          "Your voice",
+          "Your tools",
         ].map((item) => (
           <span key={item}>
             {item}
