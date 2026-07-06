@@ -1,17 +1,30 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  ArrowLeft,
-  ArrowRight,
+  Activity,
+  Brain,
   Check,
+  ChevronRight,
   CreditCard,
+  Database,
+  GitBranch,
   Headphones,
   Loader2,
+  Network,
+  Pause,
   Play,
+  Radar,
   RefreshCcw,
+  Route,
+  Search,
   Send,
+  ShieldCheck,
   Sparkles,
+  TerminalSquare,
   Zap,
 } from "lucide-react";
+
+type RunState = "ready" | "running" | "paused" | "complete";
+type StepStatus = "pending" | "active" | "complete";
 
 type IntegrationStatus = {
   id: string;
@@ -32,44 +45,68 @@ type IntegrationPayload = {
   integrations: IntegrationStatus[];
 };
 
-type Slide = {
-  eyebrow: string;
+type PlanStep = {
+  id: string;
   title: string;
   description: string;
-  gradient: string;
-  stat: string;
+  icon: typeof Search;
+  detail: string[];
 };
 
-const slides: Slide[] = [
+const planSteps: PlanStep[] = [
   {
-    eyebrow: "Eco AI",
-    title: "Autonomous work, without the clutter.",
-    description: "A clean operating surface for model calls, payments, voice, CRM data, deploys, and workspace actions.",
-    gradient: "radial-gradient(circle at 20% 30%, rgba(74, 144, 226, 0.28), transparent 34%), linear-gradient(135deg, #070708 0%, #171718 48%, #0d0d0e 100%)",
-    stat: "Live ops",
+    id: "goal",
+    title: "Goal analysis",
+    description: "Parse the requested outcome into constraints, dependencies, and success criteria.",
+    icon: Search,
+    detail: ["Extract required outcome", "Rank risk", "Map finish state"],
   },
   {
-    eyebrow: "Nemotron",
-    title: "Nous model routing is live.",
-    description: "Eco AI now calls the Nous Research endpoint server-side with the Nemotron Ultra model selected.",
-    gradient: "radial-gradient(circle at 70% 22%, rgba(92, 225, 168, 0.22), transparent 30%), linear-gradient(135deg, #070807 0%, #141a17 52%, #090a0a 100%)",
-    stat: "550B",
+    id: "state",
+    title: "Workspace assessment",
+    description: "Inspect repo state, deployment surface, API routes, and provider readiness.",
+    icon: Radar,
+    detail: ["Read project scripts", "Check API env", "Confirm deploy target"],
   },
   {
-    eyebrow: "Revenue",
-    title: "Stripe checkout, wired from the UI.",
-    description: "The payment path creates server-side Checkout Sessions and stays in test mode until you flip it live.",
-    gradient: "radial-gradient(circle at 24% 72%, rgba(255, 255, 255, 0.13), transparent 34%), linear-gradient(135deg, #08080a 0%, #1b1b20 46%, #0a0a0c 100%)",
-    stat: "Test mode",
+    id: "context",
+    title: "Context retrieval",
+    description: "Pull integration status, model config, and reusable runtime context.",
+    icon: Database,
+    detail: ["Refresh integrations", "Attach model", "Load route health"],
   },
   {
-    eyebrow: "Integrations",
-    title: "One screen for the whole stack.",
-    description: "GitHub, Vercel, Attio, Slack, Clay, Airbyte, ElevenLabs, Stripe, Composio, and Nous report their state here.",
-    gradient: "radial-gradient(circle at 72% 70%, rgba(190, 190, 255, 0.2), transparent 32%), linear-gradient(135deg, #08080a 0%, #181820 50%, #0b0b0d 100%)",
-    stat: "10 links",
+    id: "plan",
+    title: "Plan synthesis",
+    description: "Build a short execution path and assign work lanes to the active agents.",
+    icon: GitBranch,
+    detail: ["Sequence work", "Split lanes", "Set gates"],
+  },
+  {
+    id: "execute",
+    title: "Execution",
+    description: "Run the model, trigger provider actions, and stream operational feedback.",
+    icon: Zap,
+    detail: ["Call model", "Create checkout", "Play voice route"],
+  },
+  {
+    id: "verify",
+    title: "Verification",
+    description: "Check build, deployment, integrations, and operator-facing result state.",
+    icon: ShieldCheck,
+    detail: ["Smoke test UI", "Verify API", "Report blocker"],
   },
 ];
+
+const agents = [
+  { name: "Planner", role: "Goal decomposition", load: 18 },
+  { name: "Research", role: "Context scan", load: 12 },
+  { name: "Builder", role: "Implementation lane", load: 28 },
+  { name: "Reviewer", role: "Quality gates", load: 10 },
+  { name: "Ops", role: "Deploy and observe", load: 16 },
+];
+
+const defaultGoal = "Launch Eco AI as a production agent planning console on ecoaisolutions.com";
 
 function cx(...classes: Array<string | false | null | undefined>) {
   return classes.filter(Boolean).join(" ");
@@ -84,26 +121,25 @@ async function readApiJson<T>(response: Response): Promise<T> {
 }
 
 export default function Index() {
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [progress, setProgress] = useState(0);
+  const [goal, setGoal] = useState(defaultGoal);
+  const [prompt, setPrompt] = useState("Say Eco AI online in one clean sentence.");
+  const [runState, setRunState] = useState<RunState>("ready");
+  const [activeStep, setActiveStep] = useState(0);
+  const [selectedStep, setSelectedStep] = useState(planSteps[0]);
   const [integrationPayload, setIntegrationPayload] = useState<IntegrationPayload | null>(null);
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [actionMessage, setActionMessage] = useState("Eco AI is ready.");
-  const [prompt, setPrompt] = useState("Say Eco AI online in one clean sentence.");
 
-  const activeSlide = slides[activeIndex];
   const connectedCount = integrationPayload?.integrations.filter((item) => item.ok).length ?? 0;
-  const modelStatus = integrationPayload?.model.configured ? "ready" : "missing";
+  const progress =
+    runState === "ready"
+      ? 0
+      : Math.min(100, Math.round(((activeStep + (runState === "complete" ? 1 : 0)) / planSteps.length) * 100));
 
   const visibleIntegrations = useMemo(() => {
     const order = ["nous", "stripe", "github", "vercel", "attio", "composio", "elevenlabs", "slack", "clay", "airbyte"];
     return [...(integrationPayload?.integrations ?? [])].sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
   }, [integrationPayload]);
-
-  const goToSlide = (index: number) => {
-    setActiveIndex((index + slides.length) % slides.length);
-    setProgress(0);
-  };
 
   const refreshIntegrations = async () => {
     setBusyAction("refresh");
@@ -158,13 +194,13 @@ export default function Index() {
     }
   };
 
-  const testModel = async () => {
+  const testModel = async (sourcePrompt = prompt) => {
     setBusyAction("model");
     try {
       const response = await fetch("/api/integrations/nous-chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, maxTokens: 96 }),
+        body: JSON.stringify({ prompt: sourcePrompt, maxTokens: 128 }),
       });
       const data = await readApiJson<{ content?: string; detail?: string; error?: string }>(response);
       if (!response.ok) throw new Error(data.detail || data.error || "Model call failed");
@@ -176,66 +212,100 @@ export default function Index() {
     }
   };
 
+  const runPlan = () => {
+    setRunState("running");
+    setActiveStep(0);
+    setSelectedStep(planSteps[0]);
+    setActionMessage("Execution plan started.");
+    void refreshIntegrations();
+  };
+
+  const toggleRun = () => {
+    if (runState === "ready" || runState === "complete") {
+      runPlan();
+      return;
+    }
+    setRunState((current) => (current === "running" ? "paused" : "running"));
+  };
+
+  const resetPlan = () => {
+    setRunState("ready");
+    setActiveStep(0);
+    setSelectedStep(planSteps[0]);
+    setActionMessage("Plan reset.");
+  };
+
   useEffect(() => {
     void refreshIntegrations();
   }, []);
 
   useEffect(() => {
-    const timer = window.setInterval(() => {
-      setProgress((current) => {
-        if (current >= 100) {
-          setActiveIndex((index) => (index + 1) % slides.length);
-          return 0;
-        }
-        return current + 1;
-      });
-    }, 55);
+    if (runState !== "running") return undefined;
 
-    return () => window.clearInterval(timer);
-  }, []);
+    const timer = window.setTimeout(() => {
+      setActiveStep((current) => {
+        if (current >= planSteps.length - 1) {
+          setRunState("complete");
+          setSelectedStep(planSteps[planSteps.length - 1]);
+          setActionMessage("Plan complete. Verify deployment and integrations.");
+          void testModel(`Summarize this Eco AI goal in one sentence: ${goal}`);
+          return current;
+        }
+        const next = current + 1;
+        setSelectedStep(planSteps[next]);
+        return next;
+      });
+    }, 1200);
+
+    return () => window.clearTimeout(timer);
+  }, [runState, activeStep, goal]);
 
   return (
-    <main className="eco-slider" style={{ "--slide-gradient": activeSlide.gradient } as React.CSSProperties}>
-      <div className="slider-bg" />
-      <div className="slider-noise" />
+    <main className="eco-console">
+      <div className="ambient-bg" />
+      <div className="grid-noise" />
 
-      <header className="slider-header">
+      <header className="topbar">
         <div className="brand-mark" aria-label="Eco AI">
           <Sparkles size={17} />
           <span>Eco AI</span>
         </div>
-        <div className="header-status">
+        <div className="top-status">
           <span>{connectedCount} connected</span>
           <span>{integrationPayload?.model.provider ?? "nousresearch"}</span>
-          <span>model {modelStatus}</span>
+          <span>{runState}</span>
         </div>
       </header>
 
-      <section className="hero-stage" aria-label="Eco AI control surface">
-        <button className="slider-arrow left" type="button" onClick={() => goToSlide(activeIndex - 1)} aria-label="Previous slide">
-          <ArrowLeft size={20} />
-        </button>
+      <section className="hero-workspace" aria-label="Eco AI workspace">
+        <div className="hero-copy">
+          <span className="section-label">Eco AI</span>
+          <h1>Autonomous work, without the clutter.</h1>
+          <p>A clean operating surface for model calls, payments, voice, CRM data, deploys, and workspace actions.</p>
 
-        <div className="hero-copy" key={activeSlide.title}>
-          <span className="slide-eyebrow">{activeSlide.eyebrow}</span>
-          <h1>{activeSlide.title}</h1>
-          <p>{activeSlide.description}</p>
-          <div className="hero-actions">
-            <button className="primary-glass" type="button" onClick={testModel} disabled={busyAction !== null}>
-              {busyAction === "model" ? <Loader2 size={18} className="spin" /> : <Play size={18} />}
-              Run model
-            </button>
-            <button className="secondary-glass" type="button" onClick={refreshIntegrations} disabled={busyAction !== null}>
-              {busyAction === "refresh" ? <Loader2 size={18} className="spin" /> : <RefreshCcw size={18} />}
-              Refresh
-            </button>
+          <div className="goal-card">
+            <label htmlFor="goal">Goal</label>
+            <textarea id="goal" value={goal} onChange={(event) => setGoal(event.target.value)} />
+            <div className="hero-actions">
+              <button className="primary-glass" type="button" onClick={toggleRun} disabled={busyAction !== null}>
+                {runState === "running" ? <Pause size={18} /> : <Play size={18} />}
+                {runState === "running" ? "Pause plan" : "Run plan"}
+              </button>
+              <button className="secondary-glass" type="button" onClick={resetPlan}>
+                Reset
+              </button>
+              <button className="secondary-glass" type="button" onClick={refreshIntegrations} disabled={busyAction !== null}>
+                {busyAction === "refresh" ? <Loader2 size={18} className="spin" /> : <RefreshCcw size={18} />}
+                Refresh
+              </button>
+            </div>
           </div>
         </div>
 
         <aside className="control-glass" aria-label="Live controls">
           <div className="panel-topline">
-            <span>{activeSlide.stat}</span>
-            <span>{String(activeIndex + 1).padStart(2, "0")} / {String(slides.length).padStart(2, "0")}</span>
+            <span>Live controls</span>
+            <span>{progress}%</span>
           </div>
 
           <div className="model-card">
@@ -246,7 +316,7 @@ export default function Index() {
 
           <div className="prompt-box">
             <textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} aria-label="Model prompt" />
-            <button className="send-button" type="button" onClick={testModel} disabled={busyAction !== null}>
+            <button className="send-button" type="button" onClick={() => testModel()} disabled={busyAction !== null}>
               {busyAction === "model" ? <Loader2 size={17} className="spin" /> : <Send size={17} />}
             </button>
           </div>
@@ -261,7 +331,100 @@ export default function Index() {
               Voice
             </button>
           </div>
+        </aside>
+      </section>
 
+      <section className="ops-grid" aria-label="Execution console">
+        <div className="glass-panel timeline-panel">
+          <div className="panel-heading">
+            <div>
+              <span className="section-label">Execution</span>
+              <h2>Plan timeline</h2>
+            </div>
+            <div className="progress-ring">{progress}%</div>
+          </div>
+
+          <div className="timeline-list">
+            {planSteps.map((step, index) => {
+              const Icon = step.icon;
+              const status: StepStatus =
+                runState === "complete" || index < activeStep ? "complete" : index === activeStep && runState !== "ready" ? "active" : "pending";
+              return (
+                <button
+                  className={cx("timeline-row", status)}
+                  key={step.id}
+                  type="button"
+                  onClick={() => setSelectedStep(step)}
+                >
+                  <span className="row-icon">
+                    <Icon size={18} />
+                  </span>
+                  <div>
+                    <strong>{step.title}</strong>
+                    <span>{step.description}</span>
+                  </div>
+                  <ChevronRight size={16} />
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="glass-panel detail-panel">
+          <div className="panel-heading">
+            <div>
+              <span className="section-label">Selected step</span>
+              <h2>{selectedStep.title}</h2>
+            </div>
+            <Activity size={18} />
+          </div>
+          <p>{selectedStep.description}</p>
+          <div className="detail-list">
+            {selectedStep.detail.map((item) => (
+              <span key={item}>
+                <Check size={14} />
+                {item}
+              </span>
+            ))}
+          </div>
+        </div>
+
+        <div className="glass-panel">
+          <div className="panel-heading">
+            <div>
+              <span className="section-label">Agents</span>
+              <h2>Swarm state</h2>
+            </div>
+            <Brain size={18} />
+          </div>
+          <div className="agent-list">
+            {agents.map((agent, index) => {
+              const isActive = runState === "running" && index === activeStep % agents.length;
+              const isDone = runState === "complete" || index < activeStep % agents.length;
+              return (
+                <div className="agent-row" key={agent.name}>
+                  <span className={cx("status-dot", isActive ? "warn" : isDone ? "ok" : "off")} />
+                  <div>
+                    <strong>{agent.name}</strong>
+                    <span>{agent.role}</span>
+                  </div>
+                  <meter min={0} max={100} value={isActive ? 78 : agent.load} />
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="glass-panel integrations-panel">
+          <div className="panel-heading">
+            <div>
+              <span className="section-label">Integrations</span>
+              <h2>{connectedCount} connected</h2>
+            </div>
+            <button className="icon-button" type="button" onClick={refreshIntegrations} aria-label="Refresh integrations">
+              {busyAction === "refresh" ? <Loader2 size={17} className="spin" /> : <RefreshCcw size={17} />}
+            </button>
+          </div>
           <div className="integration-list">
             {visibleIntegrations.map((item) => (
               <div className="integration-row" key={item.id}>
@@ -280,38 +443,8 @@ export default function Index() {
               </div>
             )}
           </div>
-        </aside>
-
-        <button className="slider-arrow right" type="button" onClick={() => goToSlide(activeIndex + 1)} aria-label="Next slide">
-          <ArrowRight size={20} />
-        </button>
+        </div>
       </section>
-
-      <footer className="slider-pagination" aria-label="Slide pagination">
-        <div className="pagination-dots">
-          {slides.map((slide, index) => (
-            <button
-              key={slide.title}
-              className={cx("dot-button", index === activeIndex && "active")}
-              type="button"
-              onClick={() => goToSlide(index)}
-              aria-label={`Go to ${slide.eyebrow}`}
-            >
-              <span />
-              {index === activeIndex && (
-                <svg viewBox="0 0 24 24" aria-hidden="true">
-                  <circle cx="12" cy="12" r="10" />
-                  <circle cx="12" cy="12" r="10" style={{ strokeDashoffset: 62.83 * (1 - progress / 100) }} />
-                </svg>
-              )}
-            </button>
-          ))}
-        </div>
-        <div className="mini-proof">
-          <Check size={14} />
-          <span>Vercel production deployment active</span>
-        </div>
-      </footer>
     </main>
   );
 }
