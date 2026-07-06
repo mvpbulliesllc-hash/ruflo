@@ -1,45 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import {
-  Activity,
-  Apple,
-  Bot,
-  Brain,
+  ArrowLeft,
+  ArrowRight,
   Check,
-  ChevronRight,
-  Circle,
-  Clock,
-  Command,
-  Database,
-  GitBranch,
-  HardDrive,
-  Layers3,
-  MemoryStick,
-  Network,
-  Pause,
+  CreditCard,
+  Headphones,
+  Loader2,
   Play,
-  Radar,
   RefreshCcw,
-  Route,
-  Search,
-  Settings2,
-  ShieldCheck,
+  Send,
   Sparkles,
-  TerminalSquare,
   Zap,
 } from "lucide-react";
-import { Link } from "react-router-dom";
-import { GOAPPlanner, parseGoal, type Step } from "@/lib/goapPlanner";
-
-type RunState = "ready" | "planning" | "running" | "complete" | "paused";
-type AgentState = "ready" | "active" | "done";
-
-type Agent = {
-  id: string;
-  name: string;
-  role: string;
-  state: AgentState;
-  load: number;
-};
 
 type IntegrationStatus = {
   id: string;
@@ -60,261 +32,121 @@ type IntegrationPayload = {
   integrations: IntegrationStatus[];
 };
 
-const initialGoal =
-  "Launch Eco AI as a production agent planning console on ecoaisolutions.com";
+type Slide = {
+  eyebrow: string;
+  title: string;
+  description: string;
+  gradient: string;
+  stat: string;
+};
 
-const agents: Agent[] = [
-  { id: "planner", name: "Planner", role: "A* goal decomposition", state: "ready", load: 18 },
-  { id: "research", name: "Research", role: "Context and source scan", state: "ready", load: 11 },
-  { id: "builder", name: "Builder", role: "Implementation swarm", state: "ready", load: 22 },
-  { id: "reviewer", name: "Reviewer", role: "Quality and safety gates", state: "ready", load: 8 },
-  { id: "ops", name: "Ops", role: "Deploy and observe", state: "ready", load: 14 },
-];
-
-const planActions = [
+const slides: Slide[] = [
   {
-    name: "analyzeGoal",
-    cost: 1,
-    preconditions: { goalDefined: true },
-    effects: { goalParsed: true },
-    stepGenerator: (goal: string): Step => ({
-      id: "1",
-      title: "Goal analysis",
-      description: `Parse "${goal}" into constraints, success criteria, and action lanes.`,
-      icon: Search,
-      status: "pending",
-      data: [
-        { text: "Extract required outcome", icon: Command },
-        { text: "Identify dependencies and risk", icon: ShieldCheck },
-        { text: "Create state transition map", icon: Route },
-      ],
-      metrics: [
-        { label: "cost", value: "1" },
-        { label: "confidence", value: "97%" },
-      ],
-    }),
+    eyebrow: "Eco AI",
+    title: "Autonomous work, without the clutter.",
+    description: "A clean operating surface for model calls, payments, voice, CRM data, deploys, and workspace actions.",
+    gradient: "radial-gradient(circle at 20% 30%, rgba(74, 144, 226, 0.28), transparent 34%), linear-gradient(135deg, #070708 0%, #171718 48%, #0d0d0e 100%)",
+    stat: "Live ops",
   },
   {
-    name: "assessState",
-    cost: 2,
-    preconditions: { goalParsed: true },
-    effects: { stateAssessed: true },
-    stepGenerator: (): Step => ({
-      id: "2",
-      title: "Workspace assessment",
-      description: "Inspect repo state, deploy surface, scripts, and provider constraints.",
-      icon: Radar,
-      status: "pending",
-      data: [
-        { text: "Read package scripts", icon: TerminalSquare },
-        { text: "Select Vercel-ready app root", icon: Layers3 },
-        { text: "Check build output", icon: Check },
-      ],
-      metrics: [
-        { label: "agents", value: "3" },
-        { label: "risk", value: "low" },
-      ],
-    }),
+    eyebrow: "Nemotron",
+    title: "Nous model routing is live.",
+    description: "Eco AI now calls the Nous Research endpoint server-side with the Nemotron Ultra model selected.",
+    gradient: "radial-gradient(circle at 70% 22%, rgba(92, 225, 168, 0.22), transparent 30%), linear-gradient(135deg, #070807 0%, #141a17 52%, #090a0a 100%)",
+    stat: "550B",
   },
   {
-    name: "gatherInformation",
-    cost: 2,
-    preconditions: { stateAssessed: true },
-    effects: { informationGathered: true },
-    stepGenerator: (): Step => ({
-      id: "3",
-      title: "Context retrieval",
-      description: "Pull reusable docs, plugin metadata, agent roles, and memory graph hints.",
-      icon: Database,
-      status: "pending",
-      data: [
-        { text: "Index goal and agent capabilities", icon: Brain },
-        { text: "Attach memory namespace", icon: MemoryStick },
-        { text: "Rank relevant tools", icon: Network },
-      ],
-      metrics: [
-        { label: "records", value: "128" },
-        { label: "latency", value: "41ms" },
-      ],
-    }),
+    eyebrow: "Revenue",
+    title: "Stripe checkout, wired from the UI.",
+    description: "The payment path creates server-side Checkout Sessions and stays in test mode until you flip it live.",
+    gradient: "radial-gradient(circle at 24% 72%, rgba(255, 255, 255, 0.13), transparent 34%), linear-gradient(135deg, #08080a 0%, #1b1b20 46%, #0a0a0c 100%)",
+    stat: "Test mode",
   },
   {
-    name: "analyzeDocuments",
-    cost: 3,
-    preconditions: { informationGathered: true },
-    effects: { documentsAnalyzed: true },
-    stepGenerator: (): Step => ({
-      id: "4",
-      title: "Plan synthesis",
-      description: "Build the shortest executable route and assign owners to each branch.",
-      icon: GitBranch,
-      status: "pending",
-      data: [
-        { text: "Run A* plan search", icon: Route },
-        { text: "Split parallel branches", icon: Network },
-        { text: "Set review checkpoints", icon: ShieldCheck },
-      ],
-      metrics: [
-        { label: "branches", value: "5" },
-        { label: "parallel", value: "on" },
-      ],
-    }),
-  },
-  {
-    name: "generateInsights",
-    cost: 2,
-    preconditions: { documentsAnalyzed: true },
-    effects: { knowledgeSynthesized: true, insightsGenerated: true },
-    stepGenerator: (): Step => ({
-      id: "5",
-      title: "Execution",
-      description: "Run assigned agents, stream activity, and update progress from local state.",
-      icon: Zap,
-      status: "pending",
-      data: [
-        { text: "Start execution loop", icon: Play },
-        { text: "Record tool outcomes", icon: Activity },
-        { text: "Persist learned pattern", icon: Brain },
-      ],
-      metrics: [
-        { label: "runtime", value: "live" },
-        { label: "workers", value: "5" },
-      ],
-    }),
-  },
-  {
-    name: "verifyResults",
-    cost: 1,
-    preconditions: { insightsGenerated: true },
-    effects: { verified: true },
-    stepGenerator: (): Step => ({
-      id: "6",
-      title: "Verification",
-      description: "Run checks, confirm deployment readiness, and surface any blockers.",
-      icon: ShieldCheck,
-      status: "pending",
-      data: [
-        { text: "Build and route checks", icon: Check },
-        { text: "Deployment handoff", icon: HardDrive },
-        { text: "Operator summary", icon: Sparkles },
-      ],
-      metrics: [
-        { label: "gates", value: "passed" },
-        { label: "status", value: "ready" },
-      ],
-    }),
+    eyebrow: "Integrations",
+    title: "One screen for the whole stack.",
+    description: "GitHub, Vercel, Attio, Slack, Clay, Airbyte, ElevenLabs, Stripe, Composio, and Nous report their state here.",
+    gradient: "radial-gradient(circle at 72% 70%, rgba(190, 190, 255, 0.2), transparent 32%), linear-gradient(135deg, #08080a 0%, #181820 50%, #0b0b0d 100%)",
+    stat: "10 links",
   },
 ];
 
-const worldState = {
-  goalDefined: true,
-  goalParsed: false,
-  stateAssessed: false,
-  informationGathered: false,
-  documentsAnalyzed: false,
-  knowledgeSynthesized: false,
-  insightsGenerated: false,
-  verified: false,
-};
+function cx(...classes: Array<string | false | null | undefined>) {
+  return classes.filter(Boolean).join(" ");
+}
 
-const goalState = {
-  goalDefined: true,
-  goalParsed: true,
-  stateAssessed: true,
-  informationGathered: true,
-  documentsAnalyzed: true,
-  knowledgeSynthesized: true,
-  insightsGenerated: true,
-  verified: true,
-};
-
-function classNames(...values: Array<string | false | null | undefined>) {
-  return values.filter(Boolean).join(" ");
+async function readApiJson<T>(response: Response): Promise<T> {
+  const contentType = response.headers.get("content-type") || "";
+  if (!contentType.includes("application/json")) {
+    throw new Error("Live API is only available on the Vercel deployment.");
+  }
+  return response.json() as Promise<T>;
 }
 
 export default function Index() {
-  const [goal, setGoal] = useState(initialGoal);
-  const [steps, setSteps] = useState<Step[]>([]);
-  const [activeIndex, setActiveIndex] = useState(-1);
-  const [runState, setRunState] = useState<RunState>("ready");
-  const [selectedStep, setSelectedStep] = useState<Step | null>(null);
+  const [activeIndex, setActiveIndex] = useState(0);
+  const [progress, setProgress] = useState(0);
   const [integrationPayload, setIntegrationPayload] = useState<IntegrationPayload | null>(null);
-  const [integrationBusy, setIntegrationBusy] = useState(false);
-  const [actionMessage, setActionMessage] = useState("Server integrations are ready to check.");
-  const parsedGoal = useMemo(() => parseGoal(goal), [goal]);
+  const [busyAction, setBusyAction] = useState<string | null>(null);
+  const [actionMessage, setActionMessage] = useState("Eco AI is ready.");
+  const [prompt, setPrompt] = useState("Say Eco AI online in one clean sentence.");
+
+  const activeSlide = slides[activeIndex];
   const connectedCount = integrationPayload?.integrations.filter((item) => item.ok).length ?? 0;
+  const modelStatus = integrationPayload?.model.configured ? "ready" : "missing";
 
-  const progress =
-    steps.length === 0
-      ? 0
-      : Math.round((steps.filter((step) => step.status === "completed").length / steps.length) * 100);
+  const visibleIntegrations = useMemo(() => {
+    const order = ["nous", "stripe", "github", "vercel", "attio", "composio", "elevenlabs", "slack", "clay", "airbyte"];
+    return [...(integrationPayload?.integrations ?? [])].sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+  }, [integrationPayload]);
 
-  const runPlan = () => {
-    const planner = new GOAPPlanner(planActions);
-    const plannedSteps = planner.plan(worldState, goalState, goal);
-    setSteps(plannedSteps.map((step, index) => ({ ...step, status: index === 0 ? "active" : "pending" })));
-    setSelectedStep(plannedSteps[0] ?? null);
-    setActiveIndex(0);
-    setRunState("running");
-  };
-
-  const resetPlan = () => {
-    setSteps([]);
-    setActiveIndex(-1);
-    setSelectedStep(null);
-    setRunState("ready");
-  };
-
-  const toggleRun = () => {
-    if (runState === "ready" || steps.length === 0) {
-      runPlan();
-      return;
-    }
-    setRunState((current) => (current === "running" ? "paused" : "running"));
+  const goToSlide = (index: number) => {
+    setActiveIndex((index + slides.length) % slides.length);
+    setProgress(0);
   };
 
   const refreshIntegrations = async () => {
-    setIntegrationBusy(true);
+    setBusyAction("refresh");
     try {
       const response = await fetch("/api/integrations/status");
-      const data = (await response.json()) as IntegrationPayload;
+      const data = await readApiJson<IntegrationPayload>(response);
       setIntegrationPayload(data);
       setActionMessage(response.ok ? "Integration status refreshed." : "Status check returned an error.");
     } catch (error) {
       setActionMessage(error instanceof Error ? error.message : "Integration status failed.");
     } finally {
-      setIntegrationBusy(false);
+      setBusyAction(null);
     }
   };
 
   const startCheckout = async () => {
-    setIntegrationBusy(true);
+    setBusyAction("stripe");
     try {
       const response = await fetch("/api/integrations/stripe-checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ amount: 2500, label: "Eco AI strategy session" }),
       });
-      const data = await response.json();
+      const data = await readApiJson<{ url?: string; mode?: string; detail?: string; error?: string }>(response);
       if (!response.ok) throw new Error(data.detail || data.error || "Stripe checkout failed");
       window.open(data.url, "_blank", "noopener,noreferrer");
       setActionMessage(`Stripe checkout created in ${data.mode} mode.`);
     } catch (error) {
       setActionMessage(error instanceof Error ? error.message : "Stripe checkout failed.");
     } finally {
-      setIntegrationBusy(false);
+      setBusyAction(null);
     }
   };
 
   const testVoice = async () => {
-    setIntegrationBusy(true);
+    setBusyAction("voice");
     try {
       const response = await fetch("/api/integrations/voice", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text: "Eco AI integrations are online and ready." }),
       });
-      const data = await response.json();
+      const data = await readApiJson<{ audio?: string; detail?: string; error?: string }>(response);
       if (!response.ok) throw new Error(data.detail || data.error || "Voice generation failed");
       const audio = new Audio(data.audio);
       await audio.play();
@@ -322,25 +154,25 @@ export default function Index() {
     } catch (error) {
       setActionMessage(error instanceof Error ? error.message : "Voice generation failed.");
     } finally {
-      setIntegrationBusy(false);
+      setBusyAction(null);
     }
   };
 
   const testModel = async () => {
-    setIntegrationBusy(true);
+    setBusyAction("model");
     try {
       const response = await fetch("/api/integrations/nous-chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt: "Reply in one short sentence that Eco AI model routing is online.", maxTokens: 48 }),
+        body: JSON.stringify({ prompt, maxTokens: 96 }),
       });
-      const data = await response.json();
+      const data = await readApiJson<{ content?: string; detail?: string; error?: string }>(response);
       if (!response.ok) throw new Error(data.detail || data.error || "Model call failed");
       setActionMessage(data.content || "Nous model call completed.");
     } catch (error) {
       setActionMessage(error instanceof Error ? error.message : "Model call failed.");
     } finally {
-      setIntegrationBusy(false);
+      setBusyAction(null);
     }
   };
 
@@ -349,306 +181,137 @@ export default function Index() {
   }, []);
 
   useEffect(() => {
-    if (runState !== "running" || steps.length === 0 || activeIndex < 0) return;
-
-    const timer = window.setTimeout(() => {
-      setSteps((current) => {
-        const next = current.map((step, index) => {
-          if (index < activeIndex) return { ...step, status: "completed" as const };
-          if (index === activeIndex) return { ...step, status: "completed" as const };
-          if (index === activeIndex + 1) return { ...step, status: "active" as const };
-          return { ...step, status: "pending" as const };
-        });
-        setSelectedStep(next[Math.min(activeIndex + 1, next.length - 1)] ?? null);
-        return next;
+    const timer = window.setInterval(() => {
+      setProgress((current) => {
+        if (current >= 100) {
+          setActiveIndex((index) => (index + 1) % slides.length);
+          return 0;
+        }
+        return current + 1;
       });
+    }, 55);
 
-      if (activeIndex >= steps.length - 1) {
-        setRunState("complete");
-      } else {
-        setActiveIndex((index) => index + 1);
-      }
-    }, 1400);
-
-    return () => window.clearTimeout(timer);
-  }, [activeIndex, runState, steps.length]);
-
-  const liveAgents = agents.map((agent, index) => {
-    if (runState === "complete") return { ...agent, state: "done" as const, load: 0 };
-    if (runState === "running" && index === activeIndex % agents.length) {
-      return { ...agent, state: "active" as const, load: Math.min(96, agent.load + 52) };
-    }
-    if (runState === "running" && index < activeIndex) return { ...agent, state: "done" as const, load: 12 };
-    return agent;
-  });
+    return () => window.clearInterval(timer);
+  }, []);
 
   return (
-    <div className="app-shell">
-      <aside className="sidebar">
-        <Link to="/" className="brand" aria-label="Eco AI home">
-          <span className="brand-mark">
-            <Apple size={17} />
-          </span>
+    <main className="eco-slider" style={{ "--slide-gradient": activeSlide.gradient } as React.CSSProperties}>
+      <div className="slider-bg" />
+      <div className="slider-noise" />
+
+      <header className="slider-header">
+        <div className="brand-mark" aria-label="Eco AI">
+          <Sparkles size={17} />
           <span>Eco AI</span>
-        </Link>
-
-        <nav className="nav-stack" aria-label="Primary">
-          <Link className="nav-item active" to="/">
-            <Command size={17} />
-            <span>Goal Planner</span>
-          </Link>
-          <Link className="nav-item" to="/agents">
-            <Bot size={17} />
-            <span>Agents</span>
-          </Link>
-          <Link className="nav-item" to="/demo">
-            <Layers3 size={17} />
-            <span>Widget</span>
-          </Link>
-          <button className="nav-item" type="button">
-            <Database size={17} />
-            <span>Memory</span>
-          </button>
-          <button className="nav-item" type="button" onClick={refreshIntegrations}>
-            <Zap size={17} />
-            <span>Integrations</span>
-          </button>
-        </nav>
-
-        <div className="sidebar-footer">
-          <div className="mini-status">
-            <span className="pulse" />
-            <div>
-              <strong>Ready</strong>
-              <span>Vercel build target</span>
-            </div>
-          </div>
-          <button className="icon-button" type="button" aria-label="Settings">
-            <Settings2 size={16} />
-          </button>
         </div>
-      </aside>
+        <div className="header-status">
+          <span>{connectedCount} connected</span>
+          <span>{integrationPayload?.model.provider ?? "nousresearch"}</span>
+          <span>model {modelStatus}</span>
+        </div>
+      </header>
 
-      <main className="workspace">
-        <header className="topbar">
-          <div>
-            <p className="overline">Eco AI</p>
-            <h1>Autonomous work, wired into one clear console.</h1>
-          </div>
-          <div className="topbar-actions">
-            <div className="segmented" aria-label="Execution mode">
-              <button type="button" className="selected">Auto</button>
-              <button type="button">Review</button>
-            </div>
-            <button className="icon-button" type="button" onClick={resetPlan} aria-label="Reset plan">
-              <RefreshCcw size={16} />
+      <section className="hero-stage" aria-label="Eco AI control surface">
+        <button className="slider-arrow left" type="button" onClick={() => goToSlide(activeIndex - 1)} aria-label="Previous slide">
+          <ArrowLeft size={20} />
+        </button>
+
+        <div className="hero-copy" key={activeSlide.title}>
+          <span className="slide-eyebrow">{activeSlide.eyebrow}</span>
+          <h1>{activeSlide.title}</h1>
+          <p>{activeSlide.description}</p>
+          <div className="hero-actions">
+            <button className="primary-glass" type="button" onClick={testModel} disabled={busyAction !== null}>
+              {busyAction === "model" ? <Loader2 size={18} className="spin" /> : <Play size={18} />}
+              Run model
+            </button>
+            <button className="secondary-glass" type="button" onClick={refreshIntegrations} disabled={busyAction !== null}>
+              {busyAction === "refresh" ? <Loader2 size={18} className="spin" /> : <RefreshCcw size={18} />}
+              Refresh
             </button>
           </div>
-        </header>
+        </div>
 
-        <section className="composer-panel">
-          <div className="composer-copy">
-            <label htmlFor="goal-input">Describe the outcome you want</label>
-            <textarea
-              id="goal-input"
-              value={goal}
-              onChange={(event) => setGoal(event.target.value)}
-              rows={3}
-            />
-            <div className="goal-meta">
-              <span>{parsedGoal.domain}</span>
-              <span>{parsedGoal.action}</span>
-              {parsedGoal.keywords.slice(0, 3).map((keyword) => (
-                <span key={keyword}>{keyword}</span>
-              ))}
-            </div>
+        <aside className="control-glass" aria-label="Live controls">
+          <div className="panel-topline">
+            <span>{activeSlide.stat}</span>
+            <span>{String(activeIndex + 1).padStart(2, "0")} / {String(slides.length).padStart(2, "0")}</span>
           </div>
-          <div className="composer-actions">
-            <button className="primary-button" type="button" onClick={toggleRun}>
-              {runState === "running" ? <Pause size={17} /> : <Play size={17} />}
-              <span>{runState === "running" ? "Pause" : "Run plan"}</span>
+
+          <div className="model-card">
+            <span>Active model</span>
+            <strong>{integrationPayload?.model.name ?? "nvidia/nemotron-3-ultra-550b-a55b"}</strong>
+            <em>{actionMessage}</em>
+          </div>
+
+          <div className="prompt-box">
+            <textarea value={prompt} onChange={(event) => setPrompt(event.target.value)} aria-label="Model prompt" />
+            <button className="send-button" type="button" onClick={testModel} disabled={busyAction !== null}>
+              {busyAction === "model" ? <Loader2 size={17} className="spin" /> : <Send size={17} />}
             </button>
-            <div className="progress-ring" aria-label={`Execution ${progress}% complete`}>
-              <span>{progress}%</span>
-            </div>
           </div>
-        </section>
 
-        <div className="content-grid">
-          <section className="main-panel">
-            <div className="panel-heading">
-              <div>
-                <p className="overline">Execution</p>
-                <h2>Plan timeline</h2>
-              </div>
-              <span className={classNames("state-pill", runState)}>{runState}</span>
-            </div>
-
-            <div className="timeline">
-              {(steps.length ? steps : planActions.map((action) => action.stepGenerator(goal))).map(
-                (step, index) => {
-                  const Icon = step.icon;
-                  const status = steps[index]?.status ?? "pending";
-                  return (
-                    <button
-                      type="button"
-                      className={classNames("timeline-row", status, selectedStep?.id === step.id && "selected")}
-                      key={step.id}
-                      onClick={() => setSelectedStep(steps[index] ?? step)}
-                    >
-                      <span className="timeline-node">
-                        {status === "completed" ? <Check size={14} /> : <Icon size={16} />}
-                      </span>
-                      <span className="timeline-copy">
-                        <strong>{step.title}</strong>
-                        <span>{step.description}</span>
-                      </span>
-                      <ChevronRight size={16} />
-                    </button>
-                  );
-                }
-              )}
-            </div>
-          </section>
-
-          <aside className="inspector">
-            <section className="inspector-panel">
-              <div className="panel-heading">
-                <div>
-                  <p className="overline">Live agents</p>
-                  <h2>Swarm state</h2>
-                </div>
-                <Activity size={17} />
-              </div>
-              <div className="agent-list">
-                {liveAgents.map((agent) => (
-                  <div className="agent-row" key={agent.id}>
-                    <span className={classNames("agent-dot", agent.state)} />
-                    <div>
-                      <strong>{agent.name}</strong>
-                      <span>{agent.role}</span>
-                    </div>
-                    <meter min={0} max={100} value={agent.load} />
-                  </div>
-                ))}
-              </div>
-            </section>
-
-            <section className="inspector-panel">
-              <div className="panel-heading">
-                <div>
-                  <p className="overline">Integrations</p>
-                  <h2>{connectedCount} connected</h2>
-                </div>
-                <button className="icon-button compact" type="button" onClick={refreshIntegrations} aria-label="Refresh integrations">
-                  <RefreshCcw size={15} />
-                </button>
-              </div>
-              <div className="integration-list">
-                {(integrationPayload?.integrations ?? []).map((item) => (
-                  <div className="integration-row" key={item.id}>
-                    <span className={classNames("agent-dot", item.ok ? "done" : item.configured ? "active" : "ready")} />
-                    <div>
-                      <strong>{item.name}</strong>
-                      <span>{item.message}</span>
-                    </div>
-                    <em>{item.mode}</em>
-                  </div>
-                ))}
-                {!integrationPayload && (
-                  <div className="detail-item">
-                    <Zap size={16} />
-                    <span>{integrationBusy ? "Checking integrations..." : "Integration status not loaded."}</span>
-                  </div>
-                )}
-              </div>
-              <div className="integration-actions">
-                <button className="tiny-button" type="button" onClick={startCheckout} disabled={integrationBusy}>
-                  Stripe checkout
-                </button>
-                <button className="tiny-button" type="button" onClick={testVoice} disabled={integrationBusy}>
-                  Voice test
-                </button>
-                <button className="tiny-button span-two" type="button" onClick={testModel} disabled={integrationBusy}>
-                  Model test
-                </button>
-              </div>
-            </section>
-
-            <section className="inspector-panel">
-              <div className="panel-heading">
-                <div>
-                  <p className="overline">Memory graph</p>
-                  <h2>Context links</h2>
-                </div>
-                <Network size={17} />
-              </div>
-              <div className="memory-map compact-map">
-                {["stripe", "github", "attio", "nous", "composio"].map((node, index) => (
-                  <span key={node} style={{ "--node-index": index } as React.CSSProperties}>
-                    {node}
-                  </span>
-                ))}
-              </div>
-            </section>
-          </aside>
-        </div>
-      </main>
-
-      <aside className="detail-rail">
-        <div className="detail-header">
-          <p className="overline">Selected step</p>
-          <h2>{selectedStep?.title ?? "Ready"}</h2>
-          <p>{selectedStep?.description ?? "Run a plan to inspect execution details and tool output."}</p>
-        </div>
-
-        <div className="detail-stack">
-          {(selectedStep?.data ?? [
-            { text: "Local GOAP planner loaded", icon: Brain },
-            { text: "Vercel SPA routing configured", icon: HardDrive },
-            { text: "Interactive state ready", icon: Circle },
-          ]).map((item) => {
-            const Icon = item.icon ?? Circle;
-            return (
-              <div className="detail-item" key={item.text}>
-                <Icon size={16} />
-                <span>{item.text}</span>
-              </div>
-            );
-          })}
-        </div>
-
-        <div className="metric-grid">
-          {(selectedStep?.metrics ?? [
-            { label: "status", value: "ready" },
-            { label: "integrations", value: String(connectedCount) },
-            { label: "model", value: integrationPayload?.model.name ?? "claude-sonnet" },
-            { label: "model key", value: integrationPayload?.model.configured ? "ready" : "missing" },
-          ]).map((metric) => (
-            <div className="metric-card" key={metric.label}>
-              <span>{metric.label}</span>
-              <strong>{metric.value}</strong>
-            </div>
-          ))}
-        </div>
-
-        <div className="activity-log">
-          <div className="panel-heading">
-            <h2>Event stream</h2>
-            <Clock size={15} />
+          <div className="quick-actions">
+            <button type="button" onClick={startCheckout} disabled={busyAction !== null}>
+              <CreditCard size={16} />
+              Stripe
+            </button>
+            <button type="button" onClick={testVoice} disabled={busyAction !== null}>
+              <Headphones size={16} />
+              Voice
+            </button>
           </div>
-          {[
-            "Planner synchronized with current goal",
-            actionMessage,
-            runState === "complete" ? "Verification gates passed" : "Awaiting next transition",
-          ].map((event) => (
-            <div className="log-row" key={event}>
+
+          <div className="integration-list">
+            {visibleIntegrations.map((item) => (
+              <div className="integration-row" key={item.id}>
+                <span className={cx("status-dot", item.ok ? "ok" : item.configured ? "warn" : "off")} />
+                <div>
+                  <strong>{item.name}</strong>
+                  <span>{item.message}</span>
+                </div>
+                <em>{item.mode}</em>
+              </div>
+            ))}
+            {!integrationPayload && (
+              <div className="empty-status">
+                <Zap size={16} />
+                <span>Loading integrations...</span>
+              </div>
+            )}
+          </div>
+        </aside>
+
+        <button className="slider-arrow right" type="button" onClick={() => goToSlide(activeIndex + 1)} aria-label="Next slide">
+          <ArrowRight size={20} />
+        </button>
+      </section>
+
+      <footer className="slider-pagination" aria-label="Slide pagination">
+        <div className="pagination-dots">
+          {slides.map((slide, index) => (
+            <button
+              key={slide.title}
+              className={cx("dot-button", index === activeIndex && "active")}
+              type="button"
+              onClick={() => goToSlide(index)}
+              aria-label={`Go to ${slide.eyebrow}`}
+            >
               <span />
-              <p>{event}</p>
-            </div>
+              {index === activeIndex && (
+                <svg viewBox="0 0 24 24" aria-hidden="true">
+                  <circle cx="12" cy="12" r="10" />
+                  <circle cx="12" cy="12" r="10" style={{ strokeDashoffset: 62.83 * (1 - progress / 100) }} />
+                </svg>
+              )}
+            </button>
           ))}
         </div>
-      </aside>
-    </div>
+        <div className="mini-proof">
+          <Check size={14} />
+          <span>Vercel production deployment active</span>
+        </div>
+      </footer>
+    </main>
   );
 }
