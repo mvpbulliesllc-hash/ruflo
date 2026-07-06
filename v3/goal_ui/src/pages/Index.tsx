@@ -41,6 +41,25 @@ type Agent = {
   load: number;
 };
 
+type IntegrationStatus = {
+  id: string;
+  name: string;
+  configured: boolean;
+  ok: boolean;
+  mode: string;
+  message: string;
+};
+
+type IntegrationPayload = {
+  generatedAt: string;
+  model: {
+    name: string;
+    provider: string;
+    configured: boolean;
+  };
+  integrations: IntegrationStatus[];
+};
+
 const initialGoal =
   "Launch Eco AI as a production agent planning console on ecoaisolutions.com";
 
@@ -219,7 +238,11 @@ export default function Index() {
   const [activeIndex, setActiveIndex] = useState(-1);
   const [runState, setRunState] = useState<RunState>("ready");
   const [selectedStep, setSelectedStep] = useState<Step | null>(null);
+  const [integrationPayload, setIntegrationPayload] = useState<IntegrationPayload | null>(null);
+  const [integrationBusy, setIntegrationBusy] = useState(false);
+  const [actionMessage, setActionMessage] = useState("Server integrations are ready to check.");
   const parsedGoal = useMemo(() => parseGoal(goal), [goal]);
+  const connectedCount = integrationPayload?.integrations.filter((item) => item.ok).length ?? 0;
 
   const progress =
     steps.length === 0
@@ -249,6 +272,63 @@ export default function Index() {
     }
     setRunState((current) => (current === "running" ? "paused" : "running"));
   };
+
+  const refreshIntegrations = async () => {
+    setIntegrationBusy(true);
+    try {
+      const response = await fetch("/api/integrations/status");
+      const data = (await response.json()) as IntegrationPayload;
+      setIntegrationPayload(data);
+      setActionMessage(response.ok ? "Integration status refreshed." : "Status check returned an error.");
+    } catch (error) {
+      setActionMessage(error instanceof Error ? error.message : "Integration status failed.");
+    } finally {
+      setIntegrationBusy(false);
+    }
+  };
+
+  const startCheckout = async () => {
+    setIntegrationBusy(true);
+    try {
+      const response = await fetch("/api/integrations/stripe-checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: 2500, label: "Eco AI strategy session" }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || data.error || "Stripe checkout failed");
+      window.open(data.url, "_blank", "noopener,noreferrer");
+      setActionMessage(`Stripe checkout created in ${data.mode} mode.`);
+    } catch (error) {
+      setActionMessage(error instanceof Error ? error.message : "Stripe checkout failed.");
+    } finally {
+      setIntegrationBusy(false);
+    }
+  };
+
+  const testVoice = async () => {
+    setIntegrationBusy(true);
+    try {
+      const response = await fetch("/api/integrations/voice", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text: "Eco AI integrations are online and ready." }),
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || data.error || "Voice generation failed");
+      const audio = new Audio(data.audio);
+      await audio.play();
+      setActionMessage("ElevenLabs voice generated and playing.");
+    } catch (error) {
+      setActionMessage(error instanceof Error ? error.message : "Voice generation failed.");
+    } finally {
+      setIntegrationBusy(false);
+    }
+  };
+
+  useEffect(() => {
+    void refreshIntegrations();
+  }, []);
 
   useEffect(() => {
     if (runState !== "running" || steps.length === 0 || activeIndex < 0) return;
@@ -310,6 +390,10 @@ export default function Index() {
           <button className="nav-item" type="button">
             <Database size={17} />
             <span>Memory</span>
+          </button>
+          <button className="nav-item" type="button" onClick={refreshIntegrations}>
+            <Zap size={17} />
+            <span>Integrations</span>
           </button>
         </nav>
 
@@ -435,13 +519,51 @@ export default function Index() {
             <section className="inspector-panel">
               <div className="panel-heading">
                 <div>
+                  <p className="overline">Integrations</p>
+                  <h2>{connectedCount} connected</h2>
+                </div>
+                <button className="icon-button compact" type="button" onClick={refreshIntegrations} aria-label="Refresh integrations">
+                  <RefreshCcw size={15} />
+                </button>
+              </div>
+              <div className="integration-list">
+                {(integrationPayload?.integrations ?? []).map((item) => (
+                  <div className="integration-row" key={item.id}>
+                    <span className={classNames("agent-dot", item.ok ? "done" : item.configured ? "active" : "ready")} />
+                    <div>
+                      <strong>{item.name}</strong>
+                      <span>{item.message}</span>
+                    </div>
+                    <em>{item.mode}</em>
+                  </div>
+                ))}
+                {!integrationPayload && (
+                  <div className="detail-item">
+                    <Zap size={16} />
+                    <span>{integrationBusy ? "Checking integrations..." : "Integration status not loaded."}</span>
+                  </div>
+                )}
+              </div>
+              <div className="integration-actions">
+                <button className="tiny-button" type="button" onClick={startCheckout} disabled={integrationBusy}>
+                  Stripe checkout
+                </button>
+                <button className="tiny-button" type="button" onClick={testVoice} disabled={integrationBusy}>
+                  Voice test
+                </button>
+              </div>
+            </section>
+
+            <section className="inspector-panel">
+              <div className="panel-heading">
+                <div>
                   <p className="overline">Memory graph</p>
                   <h2>Context links</h2>
                 </div>
                 <Network size={17} />
               </div>
-              <div className="memory-map">
-                {["repo", "goal", "agents", "deploy", "verify"].map((node, index) => (
+              <div className="memory-map compact-map">
+                {["stripe", "github", "attio", "voice", "composio"].map((node, index) => (
                   <span key={node} style={{ "--node-index": index } as React.CSSProperties}>
                     {node}
                   </span>
@@ -478,9 +600,9 @@ export default function Index() {
         <div className="metric-grid">
           {(selectedStep?.metrics ?? [
             { label: "status", value: "ready" },
-            { label: "agents", value: "5" },
-            { label: "mode", value: "local" },
-            { label: "deploy", value: "Vercel" },
+            { label: "integrations", value: String(connectedCount) },
+            { label: "model", value: integrationPayload?.model.name ?? "claude-sonnet" },
+            { label: "model key", value: integrationPayload?.model.configured ? "ready" : "missing" },
           ]).map((metric) => (
             <div className="metric-card" key={metric.label}>
               <span>{metric.label}</span>
@@ -496,7 +618,7 @@ export default function Index() {
           </div>
           {[
             "Planner synchronized with current goal",
-            "Agent queue warmed",
+            actionMessage,
             runState === "complete" ? "Verification gates passed" : "Awaiting next transition",
           ].map((event) => (
             <div className="log-row" key={event}>
