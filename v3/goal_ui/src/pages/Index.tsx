@@ -208,7 +208,7 @@ export default function Index() {
       const response = await fetch("/api/integrations/stripe-checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ amount: 2500, label: "Eco AI strategy session" }),
+        body: JSON.stringify({ offer: "strategy" }),
       });
       const data = await readApiJson<{ url?: string; mode?: string; detail?: string; error?: string }>(response);
       if (!response.ok) throw new Error(data.detail || data.error || "Stripe checkout failed");

@@ -1,30 +1,49 @@
 import React, { useEffect, useState } from "react";
-import { ArrowRight, Bot, Database, Lock, Mail, Mic2, Play, Sparkles, Workflow } from "lucide-react";
+import {
+  ArrowRight,
+  Bot,
+  CheckCircle2,
+  CreditCard,
+  Database,
+  Lock,
+  Mic2,
+  Play,
+  Sparkles,
+  Workflow,
+} from "lucide-react";
 import { Link } from "react-router-dom";
 
 export default function Landing() {
   const [playbackId, setPlaybackId] = useState("");
+  const [checkoutState, setCheckoutState] = useState<"idle" | "loading">("idle");
+  const [checkoutMessage, setCheckoutMessage] = useState("");
   const services = [
     {
       icon: Bot,
-      title: "Agentic operators",
-      body: "AI agents that reason through tasks, call tools, update systems, and report what changed.",
+      title: "Agentic back-office operator",
+      body: "An AI operator that handles intake, follows up, updates systems, triggers workflows, and escalates the right work.",
     },
     {
       icon: Workflow,
-      title: "Workflow automation",
-      body: "Event-driven operations across CRM, enrichment, email, storage, databases, queues, and internal approvals.",
+      title: "Workflow and CRM execution",
+      body: "Clay enrichment, Firecrawl research, data entry, lead routing, approvals, storage, jobs, and provider health in one flow.",
     },
     {
       icon: Mic2,
-      title: "Inbound and outbound voice",
-      body: "Voice agents for intake, qualification, follow-up, scheduling, handoffs, and customer support.",
+      title: "Inbound and outbound voice agents",
+      body: "Voice agents that answer, qualify, schedule, recover missed opportunities, and hand off hot conversations.",
     },
     {
       icon: Database,
-      title: "Enterprise data layer",
-      body: "Connected Postgres, Supabase, NileDB, file storage, video, and integration health for production operations.",
+      title: "Enterprise-grade data layer",
+      body: "Postgres, Supabase, NileDB, blob storage, video, auth, email, and auditability wired for production operations.",
     },
+  ];
+  const outcomes = [
+    "Missed call and lead recovery",
+    "Inbound and outbound voice agent flows",
+    "CRM enrichment and follow-up automation",
+    "Back-office workflow map and build plan",
   ];
 
   useEffect(() => {
@@ -33,6 +52,24 @@ export default function Landing() {
       .then((data) => setPlaybackId(data.playbackId || ""))
       .catch(() => setPlaybackId(""));
   }, []);
+
+  const startCheckout = async () => {
+    setCheckoutState("loading");
+    setCheckoutMessage("");
+    try {
+      const response = await fetch("/api/integrations/stripe-checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ offer: "blueprint" }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.url) throw new Error(data.detail || data.error || "Stripe checkout failed");
+      window.location.href = data.url;
+    } catch (error) {
+      setCheckoutMessage(error instanceof Error ? error.message : "Stripe checkout failed.");
+      setCheckoutState("idle");
+    }
+  };
 
   return (
     <main className="landing-shell">
@@ -52,21 +89,29 @@ export default function Landing() {
       <section className="landing-stage">
         <div className="landing-copy">
           <span className="section-label">Eco AI Solutions</span>
-          <h1>Enterprise-grade AI automation for real back-office work.</h1>
+          <h1>Turn missed calls, inbox chaos, and manual follow-up into an AI-run back office.</h1>
           <p>
-            Eco AI builds agentic systems that run workflows, manage data, operate voice channels,
-            trigger jobs, enrich leads, route messages, and keep the business moving from one private
-            operations console.
+            Eco AI installs agentic operators that answer, qualify, enrich, update your CRM, send the
+            follow-up, trigger the workflow, and hand off the money conversations to your team.
           </p>
           <div className="landing-actions">
-            <Link className="primary-glass" to="/ops">
-              <Lock size={17} />
-              Operator login
-            </Link>
+            <button className="primary-glass" type="button" onClick={startCheckout} disabled={checkoutState === "loading"}>
+              <CreditCard size={17} />
+              {checkoutState === "loading" ? "Opening checkout" : "Start AI Ops Blueprint - $497"}
+            </button>
             <a className="secondary-glass" href="#video">
               <Play size={17} />
               Play video
             </a>
+          </div>
+          {checkoutMessage ? <p className="checkout-message">{checkoutMessage}</p> : null}
+          <div className="offer-list" aria-label="Blueprint outcomes">
+            {outcomes.map((outcome) => (
+              <span key={outcome}>
+                <CheckCircle2 size={15} />
+                {outcome}
+              </span>
+            ))}
           </div>
         </div>
 
@@ -91,9 +136,22 @@ export default function Landing() {
         </div>
       </section>
 
+      <section className="offer-band" aria-label="Eco AI offer">
+        <div>
+          <span className="section-label">What you are buying</span>
+          <h2>A working plan for an AI operations layer, then a path to build it.</h2>
+        </div>
+        <p>
+          The $497 blueprint is the paid front door: we map your intake, follow-up, voice, CRM,
+          data, and automation gaps, then scope the agentic workflows that should be built first.
+          The goal is simple: fewer dropped leads, faster response, cleaner systems, and more work
+          handled without adding headcount.
+        </p>
+      </section>
+
       <section className="landing-services" aria-label="Eco AI capabilities">
         <div className="services-copy">
-          <h2>Built for operators, not demo decks.</h2>
+          <h2>Built for operators, not software tourists.</h2>
           <p>
             Agentic agents, workflow orchestration, inbound and outbound voice, agent mail, Clay
             enrichment, Firecrawl research, Mux video, storage, auth, and production database wiring

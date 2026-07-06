@@ -87,25 +87,28 @@ button {
   position: relative;
   z-index: 2;
   display: grid;
-  grid-template-columns: minmax(0, 0.78fr) minmax(420px, 1.22fr);
-  align-items: center;
-  gap: clamp(24px, 5vw, 72px);
-  min-height: calc(100vh - 110px);
-  padding: 18px clamp(18px, 6vw, 86px) 58px;
+  grid-template-columns: 1fr;
+  align-items: start;
+  gap: clamp(24px, 4vw, 52px);
+  padding: 34px clamp(18px, 6vw, 86px) 46px;
+}
+
+.landing-copy {
+  max-width: 1160px;
 }
 
 .landing-copy h1 {
-  max-width: 680px;
+  max-width: 1080px;
   margin: 0;
   color: #fff;
-  font-size: clamp(46px, 7vw, 96px);
+  font-size: clamp(50px, 7.6vw, 116px);
   font-weight: 300;
   letter-spacing: 0;
-  line-height: 0.96;
+  line-height: 0.92;
 }
 
 .landing-copy p {
-  max-width: 620px;
+  max-width: 820px;
   margin: 24px 0 0;
   color: rgba(255, 255, 255, 0.74);
   font-size: clamp(17px, 1.8vw, 22px);
@@ -120,18 +123,59 @@ button {
   margin-top: 30px;
 }
 
-.landing-actions a {
+.landing-actions a,
+.landing-actions button {
   text-decoration: none;
+}
+
+.checkout-message {
+  max-width: 520px !important;
+  margin-top: 14px !important;
+  color: #ffb4a9 !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+}
+
+.offer-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  max-width: 980px;
+  margin-top: 22px;
+}
+
+.offer-list span {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.055);
+  color: rgba(255, 255, 255, 0.76);
+  padding: 9px 12px;
+  font-size: 12px;
+  font-weight: 780;
+}
+
+.offer-list svg {
+  color: #f4f4f4;
 }
 
 .landing-video {
   position: relative;
   overflow: hidden;
   border: 1px solid var(--line);
-  border-radius: 28px;
+  width: 100%;
+  border-radius: 30px;
   background: rgba(255, 255, 255, 0.07);
   box-shadow: 0 28px 90px rgba(0, 0, 0, 0.42);
   backdrop-filter: blur(22px);
+}
+
+.landing-video mux-player {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
 }
 
 .landing-video video {
@@ -180,6 +224,37 @@ button {
 .video-caption strong {
   color: #fff;
   font-size: 12px;
+}
+
+.offer-band {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: minmax(280px, 0.9fr) minmax(0, 1.1fr);
+  gap: clamp(22px, 5vw, 76px);
+  align-items: end;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.035);
+  padding: 48px clamp(18px, 6vw, 86px);
+}
+
+.offer-band h2 {
+  max-width: 720px;
+  margin: 0;
+  color: #fff;
+  font-size: clamp(34px, 5vw, 72px);
+  font-weight: 320;
+  letter-spacing: 0;
+  line-height: 0.98;
+}
+
+.offer-band p {
+  max-width: 720px;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.68);
+  font-size: clamp(16px, 1.55vw, 20px);
+  line-height: 1.62;
 }
 
 .landing-services {
@@ -655,6 +730,12 @@ textarea:focus {
   font-weight: 800;
 }
 
+.landing-actions .primary-glass {
+  min-height: 48px;
+  padding: 0 20px;
+  font-size: 13px;
+}
+
 .primary-glass {
   background: rgba(255, 255, 255, 0.94);
   color: #0b0b0c;
@@ -953,16 +1034,20 @@ meter::-webkit-meter-optimum-value {
 
 @media (max-width: 760px) {
   .landing-stage {
-    grid-template-columns: 1fr;
-    padding: 12px 16px 30px;
+    padding: 18px 16px 30px;
   }
 
   .landing-copy h1 {
-    font-size: clamp(42px, 14vw, 62px);
+    font-size: clamp(42px, 14vw, 64px);
   }
 
   .landing-video {
     border-radius: 22px;
+  }
+
+  .offer-band {
+    grid-template-columns: 1fr;
+    padding: 34px 16px;
   }
 
   .landing-services {

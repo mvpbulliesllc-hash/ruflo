@@ -9,6 +9,18 @@ type VercelResponse = {
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   if (req.method !== "POST") return methodNotAllowed(res, ["POST"]);
 
+  const offers = {
+    blueprint: {
+      amount: 49700,
+      label: "Eco AI operations blueprint",
+      description: "Paid AI operations audit, workflow map, and automation build plan.",
+    },
+    strategy: {
+      amount: 25000,
+      label: "Eco AI strategy session",
+      description: "Paid strategy session for an Eco AI automation build.",
+    },
+  };
   const stripeMode = env("STRIPE_MODE") || "test";
   const key =
     stripeMode === "live"
@@ -17,9 +29,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
   if (!key) return sendJson(res, 500, { error: "stripe_not_configured" });
 
-  const body = await readJson<{ amount?: number; label?: string }>(req);
-  const amount = Math.min(Math.max(Number(body.amount || 2500), 100), 500000);
-  const label = String(body.label || "Eco AI strategy session").slice(0, 80);
+  const body = await readJson<{ offer?: string }>(req);
+  const offerKey = body.offer === "strategy" ? "strategy" : "blueprint";
+  const offer = offers[offerKey];
   const origin = siteUrl(req);
 
   const params = new URLSearchParams();
@@ -28,9 +40,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   params.set("cancel_url", `${origin}/?checkout=cancelled`);
   params.set("line_items[0][quantity]", "1");
   params.set("line_items[0][price_data][currency]", "usd");
-  params.set("line_items[0][price_data][unit_amount]", String(Math.round(amount)));
-  params.set("line_items[0][price_data][product_data][name]", label);
+  params.set("line_items[0][price_data][unit_amount]", String(offer.amount));
+  params.set("line_items[0][price_data][product_data][name]", offer.label);
+  params.set("line_items[0][price_data][product_data][description]", offer.description);
   params.set("metadata[source]", "eco-ai-console");
+  params.set("metadata[offer]", offerKey);
 
   const response = await fetch("https://api.stripe.com/v1/checkout/sessions", {
     method: "POST",
@@ -49,5 +63,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     id: data.id,
     url: data.url,
     mode: stripeMode,
+    offer: offerKey,
   });
 }
