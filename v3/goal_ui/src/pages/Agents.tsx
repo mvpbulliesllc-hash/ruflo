@@ -10,17 +10,16 @@ import {
   Pause,
   Play,
   ServerCog,
-  Shield,
   TestTube2,
 } from "lucide-react";
 
 const rows = [
-  { name: "Architecture", icon: GitBranch, lane: "Plan topology and boundaries" },
-  { name: "Implementation", icon: Code2, lane: "Apply code changes" },
-  { name: "Testing", icon: TestTube2, lane: "Run build and smoke checks" },
-  { name: "Review", icon: FileCheck2, lane: "Inspect regressions" },
-  { name: "Security", icon: Shield, lane: "Policy and secret scan" },
-  { name: "Deploy", icon: ServerCog, lane: "Ship to Vercel" },
+  { name: "Revenue", icon: GitBranch, lane: "Qualify leads and book calls" },
+  { name: "Support", icon: Bot, lane: "Resolve questions across channels" },
+  { name: "Operations", icon: ServerCog, lane: "Update systems and trigger follow-through" },
+  { name: "Research", icon: FileCheck2, lane: "Enrich accounts and surface context" },
+  { name: "Voice", icon: TestTube2, lane: "Handle inbound and outbound conversations" },
+  { name: "Build", icon: Code2, lane: "Create content, campaigns, and automations" },
 ];
 
 export default function Agents() {
@@ -53,7 +52,7 @@ export default function Agents() {
           </span>
           <div>
             <p className="overline">Agents</p>
-            <h1>Live execution lanes</h1>
+            <h1>Live workforce lanes</h1>
           </div>
         </section>
 

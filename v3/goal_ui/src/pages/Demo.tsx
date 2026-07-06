@@ -28,8 +28,8 @@ export default function Demo() {
             <Layers3 size={18} />
           </span>
           <div>
-            <p className="overline">Widget</p>
-            <h1>Embed Eco AI anywhere</h1>
+            <p className="overline">Deployment</p>
+            <h1>Embed an AI workforce front door anywhere</h1>
           </div>
         </section>
         <div className="code-panel">
@@ -40,10 +40,10 @@ export default function Demo() {
         </div>
         <section className="widget-preview">
           <h2>Preview</h2>
-          <p>Drop the script on a site and the same local planner surface loads as an embeddable widget.</p>
+          <p>Drop the script on a site and Eco AI can greet visitors, collect intent, and route the work to the right agent team.</p>
           <div className="preview-card">
-            <strong>Eco AI planning console</strong>
-            <span>Ready for external pages</span>
+            <strong>Eco AI workforce intake</strong>
+            <span>Ready for enterprise pages</span>
           </div>
         </section>
       </main>
