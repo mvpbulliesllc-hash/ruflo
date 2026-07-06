@@ -66,12 +66,22 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const modelKey = env("NOUS_API_KEY") || env("HERMES_API_KEY");
   const modelName = env("NOUS_MODEL") || env("ECO_AI_MODEL") || "nvidia/nemotron-3-ultra-550b-a55b";
 
+  const stripeRestricted = stripeKey.startsWith("rk_");
   const checks = await Promise.all([
-    statusFromFetch("stripe", "Stripe", hasValue(stripeKey), stripeMode === "live" ? "live" : "test", () =>
-      checkedFetch("https://api.stripe.com/v1/account", {
-        headers: { Authorization: `Bearer ${stripeKey}` },
-      }),
-    ),
+    stripeRestricted
+      ? Promise.resolve({
+          id: "stripe",
+          name: "Stripe",
+          configured: hasValue(stripeKey),
+          ok: hasValue(stripeKey),
+          mode: stripeMode === "live" ? "live" : "test",
+          message: hasValue(stripeKey) ? "Restricted Checkout key ready" : "Missing server env",
+        } satisfies IntegrationStatus)
+      : statusFromFetch("stripe", "Stripe", hasValue(stripeKey), stripeMode === "live" ? "live" : "test", () =>
+          checkedFetch("https://api.stripe.com/v1/account", {
+            headers: { Authorization: `Bearer ${stripeKey}` },
+          }),
+        ),
     statusFromFetch("github", "GitHub", hasValue(githubToken), "server", () =>
       checkedFetch("https://api.github.com/user", {
         headers: {
