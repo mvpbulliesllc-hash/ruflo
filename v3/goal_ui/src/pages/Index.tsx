@@ -97,7 +97,7 @@ const agents = [
   { name: "Ops", role: "Vercel, DNS, runtime health", lane: "Infra", load: 16 },
 ];
 
-const navItems = ["Command", "Queue", "Integrations", "Billing", "Voice", "Deploys", "CRM"];
+const navItems = ["Command", "Queue", "Jobs", "Integrations", "Billing", "Voice", "Deploys", "CRM"];
 const defaultGoal = "Review provider health, run the Eco AI model route, and surface any blockers.";
 
 function cx(...classes: Array<string | false | null | undefined>) {
@@ -132,7 +132,7 @@ export default function Index() {
       : Math.min(100, Math.round(((activeStep + (runState === "complete" ? 1 : 0)) / planSteps.length) * 100));
 
   const visibleIntegrations = useMemo(() => {
-    const order = ["nous", "stripe", "github", "vercel", "attio", "composio", "elevenlabs", "slack", "clay", "airbyte"];
+    const order = ["nous", "inngest", "stripe", "github", "vercel", "attio", "composio", "elevenlabs", "slack", "clay", "airbyte"];
     return [...(integrationPayload?.integrations ?? [])].sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
   }, [integrationPayload]);
 
@@ -212,6 +212,30 @@ export default function Index() {
       setActionMessage(data.content || "Model call completed.");
     } catch (error) {
       setActionMessage(error instanceof Error ? error.message : "Model call failed.");
+    } finally {
+      setBusyAction(null);
+    }
+  };
+
+  const sendInngestEvent = async () => {
+    setBusyAction("inngest");
+    try {
+      const response = await fetch("/api/integrations/inngest-event", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          data: {
+            command: goal,
+            activeStep: selectedStep.id,
+            runState,
+          },
+        }),
+      });
+      const data = await readApiJson<{ ids?: string[]; detail?: string; error?: string }>(response);
+      if (!response.ok) throw new Error(data.detail || data.error || "Inngest event failed");
+      setActionMessage(`Inngest event sent${data.ids?.[0] ? `: ${data.ids[0]}` : "."}`);
+    } catch (error) {
+      setActionMessage(error instanceof Error ? error.message : "Inngest event failed.");
     } finally {
       setBusyAction(null);
     }
@@ -496,6 +520,10 @@ export default function Index() {
             <button type="button" onClick={() => testModel(`Run an operations check for: ${goal}`)} disabled={busyAction !== null}>
               <Zap size={16} />
               Run model check
+            </button>
+            <button type="button" onClick={sendInngestEvent} disabled={busyAction !== null}>
+              <Activity size={16} />
+              Send Inngest event
             </button>
           </div>
         </section>

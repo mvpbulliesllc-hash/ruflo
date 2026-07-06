@@ -11,7 +11,7 @@ type IntegrationStatus = {
   name: string;
   configured: boolean;
   ok: boolean;
-  mode: "live" | "test" | "link" | "server" | "needs_model" | "configured" | "model";
+  mode: "live" | "test" | "link" | "server" | "needs_model" | "configured" | "model" | "queue";
   message: string;
 };
 
@@ -59,6 +59,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const vercelToken = env("VERCEL_API_TOKEN");
   const elevenLabsKey = env("ELEVENLABS_API_KEY") || env("ELEVEN_LABS_API_KEY");
   const composioKey = env("COMPOSIO_API_KEY");
+  const inngestEventKey = env("INNGEST_EVENT_KEY");
+  const inngestSigningKey = env("INNGEST_SIGNING_KEY");
   const modelKey = env("NOUS_API_KEY") || env("HERMES_API_KEY");
   const modelName = env("NOUS_MODEL") || env("ECO_AI_MODEL") || "nvidia/nemotron-3-ultra-550b-a55b";
 
@@ -125,6 +127,17 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       ok: hasValue(modelKey),
       mode: "model",
       message: hasValue(modelKey) ? "Model endpoint key ready" : "Missing model API key",
+    },
+    {
+      id: "inngest",
+      name: "Inngest",
+      configured: hasValue(inngestEventKey) && hasValue(inngestSigningKey),
+      ok: hasValue(inngestEventKey) && hasValue(inngestSigningKey),
+      mode: "queue",
+      message:
+        hasValue(inngestEventKey) && hasValue(inngestSigningKey)
+          ? "Event and signing keys ready"
+          : "Missing event key or signing key",
     },
     {
       id: "composio",
