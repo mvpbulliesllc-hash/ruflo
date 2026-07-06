@@ -8,6 +8,8 @@ import {
   GitBranch,
   Headphones,
   Loader2,
+  Lock,
+  LogOut,
   Network,
   Pause,
   Play,
@@ -113,6 +115,9 @@ async function readApiJson<T>(response: Response): Promise<T> {
 }
 
 export default function Index() {
+  const [authChecked, setAuthChecked] = useState(false);
+  const [authenticated, setAuthenticated] = useState(false);
+  const [password, setPassword] = useState("");
   const [goal, setGoal] = useState(defaultGoal);
   const [prompt, setPrompt] = useState("Give me the current Eco AI operating status in one concise paragraph.");
   const [runState, setRunState] = useState<RunState>("ready");
@@ -145,6 +150,43 @@ export default function Index() {
     ],
     [actionMessage, connectedCount, goal, integrationPayload?.model.name, totalIntegrations],
   );
+
+  const checkAuth = async () => {
+    try {
+      const response = await fetch("/api/auth/session");
+      const data = await readApiJson<{ authenticated: boolean }>(response);
+      setAuthenticated(Boolean(data.authenticated));
+    } catch {
+      setAuthenticated(false);
+    } finally {
+      setAuthChecked(true);
+    }
+  };
+
+  const login = async () => {
+    setBusyAction("login");
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ password }),
+      });
+      const data = await readApiJson<{ ok?: boolean; error?: string }>(response);
+      if (!response.ok || !data.ok) throw new Error(data.error || "Login failed");
+      setPassword("");
+      setAuthenticated(true);
+      setActionMessage("Operator authenticated.");
+    } catch (error) {
+      setActionMessage(error instanceof Error ? error.message : "Login failed.");
+    } finally {
+      setBusyAction(null);
+    }
+  };
+
+  const logout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    setAuthenticated(false);
+  };
 
   const refreshIntegrations = async () => {
     setBusyAction("refresh");
@@ -265,8 +307,12 @@ export default function Index() {
   };
 
   useEffect(() => {
-    void refreshIntegrations();
+    void checkAuth();
   }, []);
+
+  useEffect(() => {
+    if (authenticated) void refreshIntegrations();
+  }, [authenticated]);
 
   useEffect(() => {
     if (runState !== "running") return undefined;
@@ -288,6 +334,51 @@ export default function Index() {
 
     return () => window.clearTimeout(timer);
   }, [runState, activeStep, goal]);
+
+  if (!authChecked) {
+    return (
+      <main className="auth-shell">
+        <div className="ambient-bg" />
+        <div className="grid-noise" />
+        <div className="auth-card">
+          <Loader2 className="spin" size={22} />
+          <span>Checking operator session</span>
+        </div>
+      </main>
+    );
+  }
+
+  if (!authenticated) {
+    return (
+      <main className="auth-shell">
+        <div className="ambient-bg" />
+        <div className="grid-noise" />
+        <section className="auth-card">
+          <div className="brand-mark" aria-label="Eco AI">
+            <Sparkles size={17} />
+            <span>Eco AI</span>
+          </div>
+          <Lock size={24} />
+          <h1>Operator access</h1>
+          <p>Back-office operations are private. Enter the operator password to continue.</p>
+          <input
+            type="password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") void login();
+            }}
+            placeholder="Operator password"
+          />
+          <button className="primary-glass" type="button" onClick={login} disabled={busyAction === "login"}>
+            {busyAction === "login" ? <Loader2 size={17} className="spin" /> : <Lock size={17} />}
+            Unlock operations
+          </button>
+          <span>{actionMessage}</span>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="ops-shell">
@@ -322,6 +413,9 @@ export default function Index() {
             <span>{runState}</span>
             <span>{connectedCount}/{totalIntegrations || 10} connected</span>
             <span>{integrationPayload?.model.provider ?? "nousresearch"}</span>
+            <button className="logout-button" type="button" onClick={logout} aria-label="Logout">
+              <LogOut size={14} />
+            </button>
           </div>
         </header>
 

@@ -11,7 +11,7 @@ type IntegrationStatus = {
   name: string;
   configured: boolean;
   ok: boolean;
-  mode: "live" | "test" | "link" | "server" | "needs_model" | "configured" | "model" | "queue";
+  mode: "live" | "test" | "link" | "server" | "needs_model" | "configured" | "model" | "queue" | "db" | "storage" | "auth" | "mail" | "video";
   message: string;
 };
 
@@ -61,6 +61,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const composioKey = env("COMPOSIO_API_KEY");
   const inngestEventKey = env("INNGEST_EVENT_KEY");
   const inngestSigningKey = env("INNGEST_SIGNING_KEY");
+  const muxTokenId = env("MUX_TOKEN_ID");
+  const muxTokenSecret = env("MUX_TOKEN_SECRET");
   const modelKey = env("NOUS_API_KEY") || env("HERMES_API_KEY");
   const modelName = env("NOUS_MODEL") || env("ECO_AI_MODEL") || "nvidia/nemotron-3-ultra-550b-a55b";
 
@@ -93,6 +95,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         headers: { "xi-api-key": elevenLabsKey },
       }),
     ),
+    statusFromFetch("mux", "Mux Video", hasValue(muxTokenId) && hasValue(muxTokenSecret), "video", () =>
+      checkedFetch("https://api.mux.com/video/v1/assets?limit=1", {
+        headers: { Authorization: `Basic ${Buffer.from(`${muxTokenId}:${muxTokenSecret}`).toString("base64")}` },
+      }),
+    ),
+    statusFromFetch("auth0", "Auth0", hasValue(env("AUTH0_DOMAIN")), "auth", () =>
+      checkedFetch(`https://${env("AUTH0_DOMAIN")}/.well-known/openid-configuration`, {}),
+    ),
   ]);
 
   const passive: IntegrationStatus[] = [
@@ -113,12 +123,76 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       message: "Key stored. Clay has no universal account health endpoint.",
     },
     {
+      id: "firecrawl",
+      name: "Firecrawl",
+      configured: hasValue(env("FIRECRAWL_API_KEY")),
+      ok: hasValue(env("FIRECRAWL_API_KEY")),
+      mode: "server",
+      message: hasValue(env("FIRECRAWL_API_KEY")) ? "Crawl key stored" : "Missing crawl key",
+    },
+    {
+      id: "parallel",
+      name: "Parallel",
+      configured: hasValue(env("PARALLEL_API_KEY")),
+      ok: hasValue(env("PARALLEL_API_KEY")),
+      mode: "server",
+      message: hasValue(env("PARALLEL_API_KEY")) ? "Parallel key stored" : "Missing Parallel key",
+    },
+    {
+      id: "agentmail",
+      name: "Agent Mail",
+      configured: hasValue(env("AGENTMAIL_API_KEY")),
+      ok: hasValue(env("AGENTMAIL_API_KEY")),
+      mode: "mail",
+      message: hasValue(env("AGENTMAIL_API_KEY")) ? "Agent mail key stored" : "Missing mail key",
+    },
+    {
       id: "airbyte",
       name: "Airbyte",
       configured: hasValue(env("AIRBYTE_CONNECTORS_URL")),
       ok: hasValue(env("AIRBYTE_CONNECTORS_URL")),
       mode: "link",
       message: "Connector console link ready",
+    },
+    {
+      id: "postgres",
+      name: "Postgres / Neon",
+      configured: hasValue(env("POSTGRES_URL")) || hasValue(env("DATABASE_URL")) || hasValue(env("ecoai_POSTGRES_URL")),
+      ok: hasValue(env("POSTGRES_URL")) || hasValue(env("DATABASE_URL")) || hasValue(env("ecoai_POSTGRES_URL")),
+      mode: "db",
+      message: "Primary Postgres connection configured",
+    },
+    {
+      id: "supabase",
+      name: "Supabase",
+      configured: hasValue(env("ecoai_SUPABASE_URL")) || hasValue(env("NEXT_PUBLIC_ecoai_SUPABASE_URL")),
+      ok: hasValue(env("ecoai_SUPABASE_URL")) || hasValue(env("NEXT_PUBLIC_ecoai_SUPABASE_URL")),
+      mode: "db",
+      message: "Supabase project configured",
+    },
+    {
+      id: "niledb",
+      name: "NileDB",
+      configured: hasValue(env("ecoaisolutions_NILEDB_POSTGRES_URL")) || hasValue(env("ecoaisolutions_NILEDB_URL")),
+      ok: hasValue(env("ecoaisolutions_NILEDB_POSTGRES_URL")) || hasValue(env("ecoaisolutions_NILEDB_URL")),
+      mode: "db",
+      message: "NileDB connection configured",
+    },
+    {
+      id: "convex",
+      name: "Convex",
+      configured: hasValue(env("CONVEX_DEPLOY_KEY")),
+      ok: hasValue(env("CONVEX_DEPLOY_KEY")),
+      mode: "db",
+      message: hasValue(env("CONVEX_DEPLOY_KEY")) ? "Convex deploy key stored" : "Missing Convex key",
+    },
+    {
+      id: "blob",
+      name: "Blob Storage",
+      configured: hasValue(env("BLOB_STORE_ID")) || hasValue(env("BLOB_WEBHOOK_PUBLIC_KEY")),
+      ok: hasValue(env("BLOB_STORE_ID")) || hasValue(env("BLOB_WEBHOOK_PUBLIC_KEY")),
+      mode: "storage",
+      message: "Blob storage env configured",
     },
     {
       id: "nous",
