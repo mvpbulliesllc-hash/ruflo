@@ -5,7 +5,7 @@ export default function NotFound() {
     <div className="page-shell center-page">
       <h1>Route not found</h1>
       <Link className="primary-button" to="/">
-        Return to Ruflo
+        Return to Eco AI
       </Link>
     </div>
   );

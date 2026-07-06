@@ -42,7 +42,7 @@ type Agent = {
 };
 
 const initialGoal =
-  "Ship a production Vercel deployment for Ruflo with an intuitive agent planning console";
+  "Launch Eco AI as a production agent planning console on ecoaisolutions.com";
 
 const agents: Agent[] = [
   { id: "planner", name: "Planner", role: "A* goal decomposition", state: "ready", load: 18 },
@@ -287,11 +287,11 @@ export default function Index() {
   return (
     <div className="app-shell">
       <aside className="sidebar">
-        <Link to="/" className="brand" aria-label="Ruflo home">
+        <Link to="/" className="brand" aria-label="Eco AI home">
           <span className="brand-mark">
             <Apple size={17} />
           </span>
-          <span>Ruflo</span>
+          <span>Eco AI</span>
         </Link>
 
         <nav className="nav-stack" aria-label="Primary">
@@ -330,8 +330,8 @@ export default function Index() {
       <main className="workspace">
         <header className="topbar">
           <div>
-            <p className="overline">Goal Planner</p>
-            <h1>Orchestrate work like a native system app.</h1>
+            <p className="overline">Eco AI</p>
+            <h1>Autonomous work, wired into one clear console.</h1>
           </div>
           <div className="topbar-actions">
             <div className="segmented" aria-label="Execution mode">

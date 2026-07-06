@@ -1,6 +1,6 @@
 {
-  "name": "@ruflo/research",
-  "description": "RuFlo Research — Goal-Oriented Action Planning UI for autonomous AI research workflows",
+  "name": "@eco-ai/console",
+  "description": "Eco AI — Goal-Oriented Action Planning console for autonomous AI workflows",
   "private": true,
   "version": "0.1.0",
   "type": "module",

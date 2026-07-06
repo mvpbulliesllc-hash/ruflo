@@ -4,7 +4,7 @@ import { ArrowLeft, Check, Copy, Layers3 } from "lucide-react";
 
 export default function Demo() {
   const [copied, setCopied] = useState(false);
-  const embed = `<div id="ruflo-research-widget-container"></div>
+  const embed = `<div id="eco-ai-widget-container"></div>
 <script src="${window.location.origin}/widget.js"></script>
 <link rel="stylesheet" href="${window.location.origin}/widget.css" />`;
 
@@ -29,7 +29,7 @@ export default function Demo() {
           </span>
           <div>
             <p className="overline">Widget</p>
-            <h1>Embed Ruflo anywhere</h1>
+            <h1>Embed Eco AI anywhere</h1>
           </div>
         </section>
         <div className="code-panel">
@@ -42,7 +42,7 @@ export default function Demo() {
           <h2>Preview</h2>
           <p>Drop the script on a site and the same local planner surface loads as an embeddable widget.</p>
           <div className="preview-card">
-            <strong>Goal-Oriented Action Planning</strong>
+            <strong>Eco AI planning console</strong>
             <span>Ready for external pages</span>
           </div>
         </section>
